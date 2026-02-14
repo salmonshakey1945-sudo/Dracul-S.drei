@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>業務日報 (2026年1月24日)</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            margin: 20px;
+            background-color: #f4f4f4;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: #fff;
+            padding: 40px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            border-bottom: 2px solid #333;
+            padding-bottom: 10px;
+            color: #333;
+        }
+
+        h2 {
+            margin-top: 30px;
+            color: #555;
+            border-left: 5px solid #007bff;
+            padding-left: 10px;
+        }
+
+        h3 {
+            color: #666;
+            margin-top: 20px;
+        }
+
+        ul {
+            margin-bottom: 20px;
+        }
+
+        li {
+            margin-bottom: 5px;
+        }
+
+        code {
+            background-color: #eee;
+            padding: 2px 5px;
+            border-radius: 3px;
+            font-family: monospace;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>業務日報 (2026年1月24日)</h1>
+        <p>本日の開発作業のまとめです。</p>
+
+        <h2>1. 実施内容</h2>
+
+        <h3>企画・計画策定</h3>
+        <ul>
+            <li><strong>要件定義:</strong> 「Dracul_[drei] 総合設定まとめ」を分析し、ゲームシステムの要件を定義しました。</li>
+            <li><strong>開発計画書の作成:</strong> 1年間の開発スケジュールを策定し、 <code>DevelopmentPlan.md</code> を作成しました。</li>
+            <li><strong>ガントチャート作成:</strong> スケジュールを可視化した <code>GanttChart.md</code> および <code>GanttChart.html</code>
+                を作成しました。</li>
+        </ul>
+
+        <h3>Phase 1: 基盤構築 (Unityプロジェクト)</h3>
+        <ul>
+            <li><strong>環境構築:</strong>
+                <ul>
+                    <li>Starter Assets (Third Person Character Controller) の導入。</li>
+                    <li>ProBuilder の導入（※署名エラーへの対応策を提示済み）。</li>
+                    <li>プロジェクトフォルダ構成（Scripts/Core, Player, Environment等）の整備。</li>
+                </ul>
+            </li>
+            <li><strong>コアスクリプト実装:</strong>
+                <ul>
+                    <li><code>PlayerStats.cs</code>: ブラッドゲージ、耐久度、出血ロジックの基礎。</li>
+                    <li><code>TimeManager.cs</code>: 昼夜サイクルと太陽光の回転制御。</li>
+                    <li><code>GameManager.cs</code>: シングルトンによる全体管理。</li>
+                    <li><code>UIManager.cs</code>: スライダーUIの制御。</li>
+                </ul>
+            </li>
+            <li><strong>マニュアル作成:</strong>
+                <ul>
+                    <li><code>UI_Setup_Instructions.md</code>: Unityエディタ上での手動セットアップ手順書。</li>
+                </ul>
+            </li>
+        </ul>
+
+        <h2>2. 現在のステータス</h2>
+        <ul>
+            <li><strong>進捗:</strong> Phase 1 (Foundation) の初期実装中。</li>
+            <li><strong>保留事項:</strong>
+                <ul>
+                    <li>UI画面の構築（Canvas/Sliderの配置とスクリプトのアタッチ）がユーザー作業待ちです。</li>
+                    <li>ProBuilderでのレベル作成は次回以降になります。</li>
+                </ul>
+            </li>
+        </ul>
+
+        <h2>3. 次回のアクション</h2>
+        <ol>
+            <li><strong>UIセットアップの完了:</strong> <code>UI_Setup_Instructions.md</code> に従い、ゲージ表示を完成させる。</li>
+            <li><strong>テストレベル作成:</strong> ProBuilder（またはCube）を用いて、テスト用の地形を作成する。</li>
+            <li><strong>環境ダメージ実装:</strong> 日光によるダメージ判定の実装とテストを行う。</li>
+        </ol>
+    </div>
+</body>
+
+</html>
