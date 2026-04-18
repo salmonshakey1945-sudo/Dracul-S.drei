@@ -9,11 +9,16 @@ public class PlayerAttack : MonoBehaviour
     public float maxAimDistance = 1000f; // Max distance for raycast
     public LayerMask aimLayerMask = ~0;   // Default to everything, can be adjusted in Inspector
 
-    private Camera mainCamera;
+    [Header("Camera Settings")]
+    [Tooltip("If left empty, Camera.main will be used.")]
+    public Camera attackCamera;
 
     void Start()
     {
-        mainCamera = Camera.main;
+        if (attackCamera == null)
+        {
+            attackCamera = Camera.main;
+        }
     }
 
     void Update()
@@ -29,29 +34,12 @@ public class PlayerAttack : MonoBehaviour
     void Shoot()
     {
         if (projectilePrefab == null) return;
-        if (mainCamera == null) mainCamera = Camera.main;
+        if (attackCamera == null) attackCamera = Camera.main;
 
         Vector3 spawnPos = (firePoint != null) ? firePoint.position : transform.position;
         
-        // Get mouse position
-        Vector2 mouseScreenPos = Mouse.current.position.ReadValue();
-        Ray ray = mainCamera.ScreenPointToRay(mouseScreenPos);
-
-        Vector3 targetPoint;
-        RaycastHit hit;
-
-        // Perform Raycast into the world
-        if (Physics.Raycast(ray, out hit, maxAimDistance, aimLayerMask))
-        {
-            targetPoint = hit.point;
-        }
-        else
-        {
-            // If we hit nothing (sky), aim at a point far away along the ray
-            targetPoint = ray.GetPoint(maxAimDistance);
-        }
-
-        Vector3 direction = (targetPoint - spawnPos).normalized;
+        // カメラが向いている正面方向をそのまま弾の飛ぶ方向にする
+        Vector3 direction = attackCamera.transform.forward;
 
         if (direction != Vector3.zero)
         {

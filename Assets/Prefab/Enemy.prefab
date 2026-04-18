@@ -16,7 +16,7 @@ GameObject:
   - component: {fileID: 577454932933315027}
   m_Layer: 0
   m_Name: Enemy
-  m_TagString: Untagged
+  m_TagString: Enemy
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -141,9 +141,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EnemyHealth
   maxHealth: 3
-  explosionPrefab: {fileID: 0}
+  explosionPrefab: {fileID: 1828176872806910, guid: 64891a0eb28db934898420d80ca07cb3, type: 3}
   explosionLifeTime: 1
-  finalExplosionPrefab: {fileID: 0}
+  finalExplosionPrefab: {fileID: 1121192042590650, guid: e1b08032bec16ba4eb1ae23cbd572664, type: 3}
   finalExplosionLifeTime: 1.5
   fallDownDuration: 1
   deadStayTime: 2

@@ -4,6 +4,8 @@ public class Enemy : MonoBehaviour
 {
     [Tooltip("敵の移動スピード")]
     public float speed = 3.0f;
+    [Tooltip("敵の攻撃力（ぶつかった時のダメージ）")]
+    public float damage = 10f;
     
     private Transform player;
 
@@ -42,6 +44,52 @@ public class Enemy : MonoBehaviour
                 
                 transform.position += direction * speed * Time.deltaTime;
             }
+        }
+    }
+    // 衝突判定（物理的な当たり判定）
+    private void OnCollisionEnter(Collision collision)
+    {
+        // ぶつかったオブジェクトの名前をログに出力（デバッグ用）
+        Debug.Log($"[Enemy] OnCollisionEnter: {collision.gameObject.name} にぶつかりました");
+
+        if (collision.gameObject.CompareTag("Player"))
+        {
+            DealDamageToPlayer(collision.gameObject);
+        }
+    }
+
+    private void OnCollisionStay(Collision collision)
+    {
+    }
+
+    // 衝突判定（トリガー設定の当たり判定）
+    private void OnTriggerEnter(Collider other)
+    {
+        // ぶつかったオブジェクトの名前をログに出力（デバッグ用）
+        Debug.Log($"[Enemy] OnTriggerEnter: {other.gameObject.name} に侵入しました");
+
+        if (other.CompareTag("Player"))
+        {
+            DealDamageToPlayer(other.gameObject);
+        }
+    }
+
+    // プレイヤーにダメージを与える共通処理
+    private void DealDamageToPlayer(GameObject playerObject)
+    {
+        // 同じオブジェクトだけでなく、親や子オブジェクトにある場合も探す
+        var playerStats = playerObject.GetComponent<Dracul.Player.PlayerStats>();
+        if (playerStats == null) playerStats = playerObject.GetComponentInParent<Dracul.Player.PlayerStats>();
+        if (playerStats == null) playerStats = playerObject.GetComponentInChildren<Dracul.Player.PlayerStats>();
+
+        if (playerStats != null)
+        {
+            playerStats.TakeDamage(damage);
+            Debug.Log($"[Enemy] プレイヤーに {damage} のダメージを与えました！");
+        }
+        else
+        {
+            Debug.LogWarning($"[Enemy] {playerObject.name} はPlayerタグがついていますが、PlayerStatsコンポーネントが見つかりません！");
         }
     }
 }
