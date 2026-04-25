@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>業務日報 (2026年4月18日)</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            margin: 20px;
+            background-color: #f4f4f4;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: #fff;
+            padding: 40px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            border-bottom: 2px solid #333;
+            padding-bottom: 10px;
+            color: #333;
+        }
+
+        h2 {
+            margin-top: 30px;
+            color: #555;
+            border-left: 5px solid #007bff;
+            padding-left: 10px;
+        }
+
+        h3 {
+            color: #666;
+            margin-top: 20px;
+        }
+
+        ul {
+            margin-bottom: 20px;
+        }
+
+        li {
+            margin-bottom: 5px;
+        }
+
+        code {
+            background-color: #eee;
+            padding: 2px 5px;
+            border-radius: 3px;
+            font-family: monospace;
+        }
+
+        a {
+            color: #007bff;
+            text-decoration: none;
+        }
+
+        a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>業務日報 (2026年4月18日)</h1>
+        <p>本日の開発作業まとめになります。</p>
+
+        <h2>1. 実施内容</h2>
+
+        <h3>PlayerAttack (プレイヤーの攻撃機能) の改良</h3>
+        <ul>
+            <li><strong>任意のカメラ設定機能:</strong> <code>PlayerAttack.cs</code> に対し、Inspectorから任意のカメラ (<code>attackCamera</code>) をアサインできるようパブリック変数を追加しました（未設定の場合は <code>Camera.main</code> にフォールバックする安全対策済み）。</li>
+            <li><strong>射撃軌道の仕様変更と不具合修正:</strong> これまでマウス位置に基づくRaycastで当たり判定をとっていた際、カメラの視線がプレイヤー自身の体（Collider）に当たってしまい弾が下に向かって発射される不具合を修正しました。Raycast判定を廃止し、より直感的に「カメラが向いている正面方向 (<code>camera.transform.forward</code>) へとそのまま並行に発射される」仕様に変更しました。</li>
+        </ul>
+
+        <h3>Enemy (敵の機能) におけるプレイヤーへの衝突・ダメージ判定の追加</h3>
+        <ul>
+            <li><strong>ダメージ・パラメータ追加:</strong> <code>Enemy.cs</code> に敵の攻撃力となるパラメータ (<code>damage = 10f</code>) を追加しました。</li>
+            <li><strong>当たり判定の実装:</strong> 物理衝突 (<code>OnCollisionEnter</code>) と トリガー衝突 (<code>OnTriggerEnter</code>) の両方のイベントを実装し、ぶつかった対象が "Player" タグを持つ場合、プレイヤー側の <code>PlayerStats.TakeDamage()</code> を呼び出してダメージ処理を行う連携ロジックを組み込みました。</li>
+            <li><strong>階層構造への対応とデバッグ強化:</strong> コンポーネントが異なる階層（親や子）にアタッチされている場合でも自動で <code>PlayerStats</code> コンポーネントを探索し適用できるように改良し、コンソールでの当たり判定のデバッグを容易にするためのログ出力を追加しました。</li>
+        </ul>
+
+        <h3>ソースコードの管理</h3>
+        <ul>
+            <li><strong>GitHubへのバックアップ:</strong> 今回の更新を含むすべての変更点を <code>git commit</code> コマンドで記録し、GitHubのメインブランチへ安全に <code>push</code> 完了しました。</li>
+        </ul>
+
+        <h2>2. 現在のステータス</h2>
+        <ul>
+            <li><strong>状態:</strong> プレイヤーの照準・発射が意図通りに動作するよう修正され、敵とプレイヤー間における「ダメージの応酬」の基礎となる土台が機能する状態になりました。</li>
+        </ul>
+
+        <h2>3. 次回のアクション</h2>
+        <ol>
+            <li><strong>当たり判定テストの継続:</strong> Unityエディタでの当たり判定（Enemyとの接触により実際にHPが減少するか）の動作・ログ確認と必要に応じた微調整。</li>
+            <li><strong>その他追加機能への着手:</strong> 引き続きスケジュールに基づいた機能（UIの拡充など）の実装を進めます。</li>
+        </ol>
+    </div>
+</body>
+
+</html>

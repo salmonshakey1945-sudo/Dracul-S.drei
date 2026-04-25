@@ -1,23 +1,36 @@
 using UnityEngine;
+using Dracul.Player;
 
 public class DamageGiver : MonoBehaviour
 {
     // ダメージ量
     public int damageAmount = 1;
 
-    // 衝突判定
+    // 衝突判定 (Rigidbody同士、または通常のコライダー)
     void OnCollisionEnter(Collision collision)
     {
+        ApplyDamage(collision.gameObject);
+    }
+
+    // トリガー接触判定 (CharacterControllerやIsTriggerを使用している場合)
+    void OnTriggerEnter(Collider other)
+    {
+        ApplyDamage(other.gameObject);
+    }
+
+    // ダメージ適用の共通処理
+    private void ApplyDamage(GameObject target)
+    {
         // 相手が "Player" タグを持っているか確認
-        if (collision.gameObject.CompareTag("Player"))
+        if (target.CompareTag("Player"))
         {
-            // PlayerHealthコンポーネントを取得
-            PlayerHealth playerHealth = collision.gameObject.GetComponent<PlayerHealth>();
+            // PlayerStatsコンポーネントを取得
+            PlayerStats playerStats = target.GetComponent<PlayerStats>();
 
             // コンポーネントが存在すればダメージを与える
-            if (playerHealth != null)
+            if (playerStats != null)
             {
-                playerHealth.TakeDamage(damageAmount);
+                playerStats.TakeDamage(damageAmount);
             }
         }
     }
