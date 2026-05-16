@@ -19,7 +19,7 @@ public class EnemyHealth : MonoBehaviour
     [Tooltip("倒れるモーションにかかる時間（秒）")]
     public float fallDownDuration = 2.0f;
     [Tooltip("倒れ終えてから完全に消滅するまでの待機時間（秒）")]
-    public float deadStayTime = 20.0f;
+    public float deadStayTime = 90.0f;
 
     [Header("Absorption Settings")]
     [Tooltip("吸血された際に回復するBlood量")]

@@ -9,7 +9,7 @@ public class EnemySpawner : MonoBehaviour
     public Transform[] spawnPoints;
 
     [Tooltip("敵を生成する間隔（秒）")]
-    public float spawnInterval = 2.0f;
+    public float spawnInterval = 10.0f;
 
     private float timer;
 

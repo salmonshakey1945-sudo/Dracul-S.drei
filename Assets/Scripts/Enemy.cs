@@ -49,6 +49,8 @@ public class Enemy : MonoBehaviour
     // 衝突判定（物理的な当たり判定）
     private void OnCollisionEnter(Collision collision)
     {
+        if (!this.enabled) return; // ダウン状態（スクリプト無効化時）はダメージを与えない
+
         // ぶつかったオブジェクトの名前をログに出力（デバッグ用）
         Debug.Log($"[Enemy] OnCollisionEnter: {collision.gameObject.name} にぶつかりました");
 
@@ -65,6 +67,8 @@ public class Enemy : MonoBehaviour
     // 衝突判定（トリガー設定の当たり判定）
     private void OnTriggerEnter(Collider other)
     {
+        if (!this.enabled) return; // ダウン状態（スクリプト無効化時）はダメージを与えない
+
         // ぶつかったオブジェクトの名前をログに出力（デバッグ用）
         Debug.Log($"[Enemy] OnTriggerEnter: {other.gameObject.name} に侵入しました");
 

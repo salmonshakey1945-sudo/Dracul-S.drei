@@ -54,7 +54,10 @@ namespace Dracul.Player
 
         private bool CheckCancelInput()
         {
-            // いずれかの移動キーやFキーが入力されたらキャンセルとみなす
+            // Fキーが離されたらキャンセルとみなす
+            if (!Keyboard.current.fKey.isPressed) return true;
+
+            // いずれかの移動キーが入力されたらキャンセルとみなす
             return Keyboard.current.wKey.wasPressedThisFrame ||
                    Keyboard.current.aKey.wasPressedThisFrame ||
                    Keyboard.current.sKey.wasPressedThisFrame ||
@@ -63,20 +66,23 @@ namespace Dracul.Player
                    Keyboard.current.rightArrowKey.wasPressedThisFrame ||
                    Keyboard.current.upArrowKey.wasPressedThisFrame ||
                    Keyboard.current.downArrowKey.wasPressedThisFrame ||
-                   Keyboard.current.spaceKey.wasPressedThisFrame ||
-                   Keyboard.current.fKey.wasPressedThisFrame;
+                   Keyboard.current.spaceKey.wasPressedThisFrame;
         }
 
         private void TryAbsorbBlood()
         {
-            Collider[] colliders = Physics.OverlapSphere(transform.position, interactRadius, interactLayer);
+            // トリガー設定されたコライダーも確実に検知するように QueryTriggerInteraction.Collide を指定
+            Collider[] colliders = Physics.OverlapSphere(transform.position, interactRadius, interactLayer, QueryTriggerInteraction.Collide);
 
             EnemyHealth closestEnemy = null;
             float closestDistance = float.MaxValue;
 
             foreach (var col in colliders)
             {
-                EnemyHealth enemyHealth = col.GetComponent<EnemyHealth>();
+                // 親や子にEnemyHealthがついている場合も考慮
+                EnemyHealth enemyHealth = col.GetComponentInParent<EnemyHealth>();
+                if (enemyHealth == null) enemyHealth = col.GetComponentInChildren<EnemyHealth>();
+
                 // isAbsorbable が true で、血が残っている敵のみを対象とする
                 if (enemyHealth != null && enemyHealth.isAbsorbable && enemyHealth.bloodGiveAmount > 0)
                 {
@@ -91,8 +97,13 @@ namespace Dracul.Player
 
             if (closestEnemy != null && playerStats != null)
             {
+                Debug.Log("[PlayerInteract] 吸血開始！");
                 // 吸血処理のコルーチンを開始
                 absorbCoroutine = StartCoroutine(AbsorbRoutine(closestEnemy));
+            }
+            else
+            {
+                Debug.Log($"[PlayerInteract] 吸血できる敵が範囲内(半径{interactRadius})にいません。");
             }
         }
 

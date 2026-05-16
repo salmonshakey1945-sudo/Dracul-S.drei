@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>業務日報 (2026年5月16日)</title>
+    <style>
+        body { font-family: sans-serif; margin: 20px; background-color: #f4f4f4; line-height: 1.6; }
+        .container { max-width: 800px; margin: 0 auto; background-color: #fff; padding: 40px; box-shadow: 0 0 10px rgba(0, 0, 0, 0.1); }
+        h1 { border-bottom: 2px solid #333; padding-bottom: 10px; color: #333; }
+        h2 { margin-top: 30px; color: #555; border-left: 5px solid #007bff; padding-left: 10px; }
+        h3 { color: #666; margin-top: 20px; }
+        ul { margin-bottom: 20px; }
+        li { margin-bottom: 5px; }
+        code { background-color: #eee; padding: 2px 5px; border-radius: 3px; font-family: monospace; }
+        a { color: #007bff; text-decoration: none; }
+        a:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>業務日報 (2026年5月16日)</h1>
+        <p>本日の開発作業まとめになります。</p>
+
+        <h2>1. 実施内容</h2>
+
+        <h3>吸血アクション（Fキー押下中）の仕様変更とバグ修正</h3>
+        <ul>
+            <li><strong>ホールド式への変更:</strong> Fキーを長押ししている間だけ吸血を継続し、離した瞬間にキャンセルされるように <code>PlayerInteract.cs</code> のキャンセル判定を改修しました。</li>
+            <li><strong>検知漏れの修正:</strong> 敵ダウン時に当たり判定がトリガー化（<code>isTrigger = true</code>）されることに伴い、<code>Physics.OverlapSphere</code> で確実にトリガーを拾うように <code>QueryTriggerInteraction.Collide</code> を明示しました。</li>
+            <li><strong>コンポーネント構成への対応:</strong> Colliderとスクリプトが親・子で別オブジェクトに分かれている場合でも検知できるよう、<code>GetComponentInParent</code> / <code>GetComponentInChildren</code> を用いた検索処理を追加しました。</li>
+        </ul>
+
+        <h3>HP / Blood スライダーバー（UI）の導入</h3>
+        <ul>
+            <li><strong>UIManagerのセットアップ:</strong> 新システム（<code>Dracul.Core.UIManager</code>）を活用し、プレイヤーの現在HPとBloodを画面上のUI（Slider）へ滑らかに反映させる手順の構築・案内を行いました。</li>
+            <li><strong>不要なスクリプトの整理:</strong> <code>Scripts</code> 直下に存在した旧型の <code>UIManager.cs</code> と、現在の <code>Core/UIManager.cs</code> との違いを整理し、競合を避けるための対応方針を決定しました。</li>
+        </ul>
+
+        <h3>ダウン中の敵に対するダメージ判定の修正</h3>
+        <ul>
+            <li><strong>仕様の穴への対応:</strong> スクリプト（<code>enabled = false</code>）が無効化された後もUnityの衝突検知（<code>OnCollisionEnter</code> / <code>OnTriggerEnter</code>）が呼ばれ続けてしまう問題に対し、<code>Enemy.cs</code> 側でスクリプトの有効・無効状態をチェックする処理を追加し、ダウン中の敵から理不尽なダメージを受けないように修正しました。</li>
+        </ul>
+
+        <h2>2. 現在のステータス</h2>
+        <ul>
+            <li><strong>状態:</strong> プレイヤーと敵の基本的なインタラクション（戦闘、ダウン、吸血、UI表示）に関する一連の流れが安定して動作するようになりました。細かい不具合や挙動の違和感が解消され、プレイ感が向上しています。</li>
+        </ul>
+
+        <h2>3. 次回のアクション</h2>
+        <ol>
+            <li><strong>ゲームサイクルのさらなる拡充:</strong> エネミースポナーの調整や、死亡時（ゲームオーバー）の演出・遷移の実装など、ゲーム全体を通したフローの構築を進める予定です。</li>
+            <li><strong>各種パラメータ調整:</strong> 武器や敵の攻撃力、吸血量などのバランス調整を行います。</li>
+        </ol>
+    </div>
+</body>
+</html>
