@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>開発レポート - 昼夜サイクルとUI統合</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; max-width: 800px; margin: 0 auto; padding: 20px; }
+        h1 { color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 10px; }
+        h2 { color: #2980b9; margin-top: 30px; }
+        ul { background: #f9f9f9; padding: 15px 30px; border-radius: 5px; }
+        li { margin-bottom: 10px; }
+        .date { color: #7f8c8d; font-style: italic; }
+        .highlight { font-weight: bold; color: #e74c3c; }
+    </style>
+</head>
+<body>
+    <h1>本日の開発レポート</h1>
+    <p class="date">作成日: 2026年5月23日</p>
+
+    <h2>実装内容</h2>
+    <ul>
+        <li><strong>昼夜サイクルの実装:</strong> 
+            時間経過を管理する <code>TimeManager.cs</code> を新規作成し、時間に合わせて太陽（Directional Light）の角度を回転させる <code>DayNightCycle.cs</code> を実装しました。
+            これにより、ゲーム内の時間に応じて空の明るさが変化するようになりました。
+        </li>
+        <li><strong>24時間時計の追加:</strong>
+            <code>UIManager.cs</code> を拡張し、<code>TimeManager.cs</code> で計算された時刻（HH:MM 形式）をUI上のテキストに反映する機能を追加しました。
+        </li>
+        <li><strong>UIManagerの統合整理:</strong>
+            <code>Assets/Scripts/Core/UIManager.cs</code> と <code>Assets/Scripts/UIManager.cs</code> の2箇所に存在していたUIManagerを1つに統合しました。
+            体力（Health）や血液（Blood）用のスライダーUIロジックをベース側のUIManagerへ移植し、不要になったCore側のスクリプトを削除してプロジェクトを整理しました。
+        </li>
+    </ul>
+
+    <h2>次回への引き継ぎ事項・注意事項</h2>
+    <ul>
+        <li>今回作成した <code>TimeManager</code> と <code>DayNightCycle</code> は、Unity Editor上で空のオブジェクト（例: GameManager）にアタッチし、Directional Light をアサインする必要があります。</li>
+        <li>時計用のテキストUI（TextMeshPro）をCanvas内に作成し、統合された <code>UIManager</code> にアサインしてください。</li>
+        <li>UIManagerの統合により、既存のUIコンポーネント（Slider等）のInspectorでのアタッチが外れている可能性があるため、動作確認と再設定をお願いします。</li>
+    </ul>
+</body>
+</html>
