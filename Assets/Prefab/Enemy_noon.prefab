@@ -12,9 +12,9 @@ GameObject:
   - component: {fileID: 4008396973190085616}
   - component: {fileID: 4847418725535082303}
   - component: {fileID: 6914278340323668721}
-  - component: {fileID: 8862789592575744937}
   - component: {fileID: 577454932933315027}
   - component: {fileID: -478904989794238124}
+  - component: {fileID: 1411901461609002606}
   m_Layer: 0
   m_Name: Enemy_noon
   m_TagString: Enemy
@@ -116,20 +116,6 @@ CapsuleCollider:
   m_Height: 2
   m_Direction: 1
   m_Center: {x: 0, y: 0, z: 0}
---- !u!114 &8862789592575744937
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6076149172442495737}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 1e19af51733dbdb4dac0791d912621f2, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Enemy
-  speed: 3
-  damage: 10
 --- !u!114 &577454932933315027
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -150,7 +136,11 @@ MonoBehaviour:
   fallDownDuration: 1
   deadStayTime: 2
   bloodGiveAmount: 30
+  canBeAbsorbed: 1
   isAbsorbable: 0
+  canBeInvestigated: 0
+  itemDropProbability: 0.5
+  isInvestigable: 0
 --- !u!54 &-478904989794238124
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -178,3 +168,17 @@ Rigidbody:
   m_Interpolate: 0
   m_Constraints: 0
   m_CollisionDetection: 0
+--- !u!114 &1411901461609002606
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6076149172442495737}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1c7c7fa0e8411934e81ca07c2b9305b1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyNoon
+  speed: 3
+  damage: 10
