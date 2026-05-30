@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>開発レポート - 2026年5月30日</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=Source+Code+Pro:wght@400;600&display=swap');
+
+        :root {
+            --bg: #0f111a;
+            --surface: #161925;
+            --surface2: #1e2235;
+            --border: #2a2f45;
+            --accent: #7c6af7;
+            --accent2: #56c8d8;
+            --accent3: #f7836a;
+            --text: #c8cde8;
+            --text-muted: #6b7099;
+            --green: #50fa7b;
+            --yellow: #f1fa8c;
+            --red: #ff5555;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Noto Sans JP', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.8;
+            min-height: 100vh;
+        }
+
+        /* ── Header ── */
+        .header {
+            background: linear-gradient(135deg, #1a1133 0%, #0f1a2e 60%, #0d1f1c 100%);
+            border-bottom: 1px solid var(--border);
+            padding: 48px 40px 36px;
+            position: relative;
+            overflow: hidden;
+        }
+        .header::before {
+            content: '';
+            position: absolute;
+            top: -60px; right: -60px;
+            width: 320px; height: 320px;
+            background: radial-gradient(circle, rgba(124,106,247,0.18) 0%, transparent 70%);
+            pointer-events: none;
+        }
+        .header::after {
+            content: '';
+            position: absolute;
+            bottom: -40px; left: 30%;
+            width: 200px; height: 200px;
+            background: radial-gradient(circle, rgba(86,200,216,0.12) 0%, transparent 70%);
+            pointer-events: none;
+        }
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: rgba(124,106,247,0.15);
+            border: 1px solid rgba(124,106,247,0.4);
+            color: var(--accent);
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            padding: 4px 12px;
+            border-radius: 20px;
+            margin-bottom: 16px;
+        }
+        .badge::before { content: '◆'; font-size: 8px; }
+        h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #fff;
+            letter-spacing: 0.02em;
+            margin-bottom: 8px;
+        }
+        .meta {
+            display: flex;
+            gap: 24px;
+            color: var(--text-muted);
+            font-size: 0.85rem;
+            margin-top: 12px;
+            flex-wrap: wrap;
+        }
+        .meta span { display: flex; align-items: center; gap: 6px; }
+        .meta span::before { font-size: 12px; }
+        .meta .date::before { content: '📅'; }
+        .meta .project::before { content: '🎮'; }
+        .meta .branch::before { content: '🌿'; }
+
+        /* ── Layout ── */
+        .content {
+            max-width: 860px;
+            margin: 0 auto;
+            padding: 40px 24px 80px;
+        }
+
+        /* ── Summary Cards ── */
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+            margin-bottom: 40px;
+        }
+        .summary-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+        .summary-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 3px;
+        }
+        .summary-card.purple::before { background: var(--accent); }
+        .summary-card.cyan::before   { background: var(--accent2); }
+        .summary-card.orange::before { background: var(--accent3); }
+        .summary-card .num {
+            font-size: 2.2rem;
+            font-weight: 700;
+            line-height: 1;
+            margin-bottom: 4px;
+        }
+        .summary-card.purple .num { color: var(--accent); }
+        .summary-card.cyan .num   { color: var(--accent2); }
+        .summary-card.orange .num { color: var(--accent3); }
+        .summary-card .label {
+            font-size: 0.78rem;
+            color: var(--text-muted);
+            letter-spacing: 0.04em;
+        }
+
+        /* ── Sections ── */
+        .section {
+            margin-bottom: 36px;
+        }
+        .section-title {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 1.05rem;
+            font-weight: 700;
+            color: #fff;
+            margin-bottom: 16px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--border);
+        }
+        .section-title .icon {
+            width: 28px; height: 28px;
+            border-radius: 8px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 14px;
+            flex-shrink: 0;
+        }
+        .icon.purple { background: rgba(124,106,247,0.2); }
+        .icon.cyan   { background: rgba(86,200,216,0.2); }
+        .icon.orange { background: rgba(247,131,106,0.2); }
+        .icon.green  { background: rgba(80,250,123,0.2); }
+
+        /* ── Change Items ── */
+        .change-item {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 16px 20px;
+            margin-bottom: 12px;
+            display: flex;
+            gap: 14px;
+            align-items: flex-start;
+            transition: border-color 0.2s;
+        }
+        .change-item:hover { border-color: rgba(124,106,247,0.4); }
+        .change-tag {
+            flex-shrink: 0;
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 1px;
+            padding: 3px 8px;
+            border-radius: 4px;
+            margin-top: 2px;
+        }
+        .tag-new     { background: rgba(80,250,123,0.15); color: var(--green);  border: 1px solid rgba(80,250,123,0.3); }
+        .tag-mod     { background: rgba(241,250,140,0.15); color: var(--yellow); border: 1px solid rgba(241,250,140,0.3); }
+        .tag-del     { background: rgba(255,85,85,0.15); color: var(--red);    border: 1px solid rgba(255,85,85,0.3); }
+        .tag-fix     { background: rgba(86,200,216,0.15); color: var(--accent2); border: 1px solid rgba(86,200,216,0.3); }
+        .change-body strong { color: #fff; font-weight: 600; display: block; margin-bottom: 3px; }
+        .change-body p  { font-size: 0.88rem; color: var(--text-muted); }
+        code {
+            font-family: 'Source Code Pro', monospace;
+            font-size: 0.82em;
+            background: rgba(124,106,247,0.12);
+            color: var(--accent2);
+            padding: 1px 5px;
+            border-radius: 4px;
+        }
+
+        /* ── File List ── */
+        .file-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+        .file-entry {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 10px 14px;
+            font-size: 0.83rem;
+        }
+        .file-entry .dot {
+            width: 8px; height: 8px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+        .dot-new { background: var(--green); }
+        .dot-mod { background: var(--yellow); }
+        .dot-del { background: var(--red); }
+        .file-entry span { color: var(--accent2); font-family: 'Source Code Pro', monospace; }
+
+        /* ── Notice ── */
+        .notice {
+            background: rgba(255,85,85,0.08);
+            border: 1px solid rgba(255,85,85,0.25);
+            border-left: 3px solid var(--red);
+            border-radius: 8px;
+            padding: 14px 18px;
+            margin-bottom: 10px;
+            font-size: 0.9rem;
+        }
+        .notice .notice-title {
+            font-weight: 700;
+            color: var(--red);
+            margin-bottom: 4px;
+        }
+        .notice p { color: var(--text-muted); }
+
+        /* ── Footer ── */
+        footer {
+            text-align: center;
+            padding: 24px;
+            color: var(--text-muted);
+            font-size: 0.8rem;
+            border-top: 1px solid var(--border);
+        }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <div class="badge">Development Report</div>
+    <h1>本日の開発レポート</h1>
+    <div class="meta">
+        <span class="date">2026年5月30日</span>
+        <span class="project">Project: Dracul / scenario_drei</span>
+        <span class="branch">Branch: master</span>
+    </div>
+</div>
+
+<div class="content">
+
+    <!-- ── Summary ── -->
+    <div class="summary-grid" style="margin-top: 32px;">
+        <div class="summary-card purple">
+            <div class="num">6</div>
+            <div class="label">スクリプト変更</div>
+        </div>
+        <div class="summary-card cyan">
+            <div class="num">2</div>
+            <div class="label">新規スクリプト</div>
+        </div>
+        <div class="summary-card orange">
+            <div class="num">4</div>
+            <div class="label">対応した課題</div>
+        </div>
+    </div>
+
+    <!-- ── 実装内容 ── -->
+    <div class="section">
+        <div class="section-title">
+            <div class="icon purple">⚙</div>
+            実装・変更内容
+        </div>
+
+        <div class="change-item">
+            <span class="change-tag tag-mod">MOD</span>
+            <div class="change-body">
+                <strong>Skyboxの時間変化対応（Environment/TimeManager.cs）</strong>
+                <p>昼夜に応じて Skybox の明るさ（<code>_Exposure</code>）と色合い（<code>_Tint</code> / <code>_SkyTint</code>）をなめらかに変化させる処理を追加。<code>Skybox/Cubemap</code> と <code>Skybox/Procedural</code> の両シェーダーに対応するため、<code>HasProperty</code> による安全なプロパティ存在チェックを実装した。</p>
+            </div>
+        </div>
+
+        <div class="change-item">
+            <span class="change-tag tag-mod">MOD</span>
+            <div class="change-body">
+                <strong>TimeManagerの統合（Environment/TimeManager.cs）</strong>
+                <p>Core と Environment に分散していた 2 つの <code>TimeManager</code> を Environment 側へ統合。シングルトンパターン・<code>Hours</code>/<code>Minutes</code> プロパティ・UIManagerへの自動時刻表示機能を追加し、<code>currentTimeOfDay</code> ベースと 0〜1 スケールの計算を一本化した。</p>
+            </div>
+        </div>
+
+        <div class="change-item">
+            <span class="change-tag tag-mod">MOD</span>
+            <div class="change-body">
+                <strong>DayNightCycleの新TimeManager対応（DayNightCycle.cs）</strong>
+                <p>統合後の <code>TimeManager</code>（名前空間 <code>Dracul.Core</code>）への参照に更新。廃止された <code>currentTimeOfDay</code> プロパティの代わりに、新しく公開した <code>CurrentTime</code>（0〜1 の正規化値）を利用するよう修正した。</p>
+            </div>
+        </div>
+
+        <div class="change-item">
+            <span class="change-tag tag-del">DEL</span>
+            <div class="change-body">
+                <strong>Core/TimeManager.cs の削除</strong>
+                <p>統合完了に伴い、旧 <code>Assets/Scripts/Core/TimeManager.cs</code> を削除。</p>
+            </div>
+        </div>
+
+        <div class="change-item">
+            <span class="change-tag tag-del">DEL / </span>
+            <div class="change-body">
+                <strong>Enemy.cs → EnemyNoon.cs にリネーム</strong>
+                <p>昼に出現する近接攻撃型エネミーを意味的に明確化するため、クラス名・ファイル名を <code>Enemy</code> から <code>EnemyNoon</code> へ変更。<code>EnemyHealth.cs</code> の参照も同様に更新した。</p>
+            </div>
+        </div>
+
+        <div class="change-item">
+            <span class="change-tag tag-new">NEW</span>
+            <div class="change-body">
+                <strong>EnemyNight.cs の新規作成</strong>
+                <p>遠距離攻撃型の夜エネミー。プレイヤーから一定距離（<code>stoppingDistance</code>）を保ちながら接近し、指定間隔（<code>shootInterval</code>）でBulletを発射。発射時に <code>Bullet.targetTag</code> を <code>"Player"</code> へ自動設定する。吸血不可・死体を「調べる」操作に対応。</p>
+            </div>
+        </div>
+
+        <div class="change-item">
+            <span class="change-tag tag-mod">MOD</span>
+            <div class="change-body">
+                <strong>EnemyHealth.cs の拡張</strong>
+                <p>吸血可否（<code>canBeAbsorbed</code>）・調査可否（<code>canBeInvestigated</code>）・アイテムドロップ確率（<code>itemDropProbability</code>）をインスペクターから設定可能に。<code>EnemyNoon</code>/<code>EnemyNight</code> 両方に対応した死亡シーケンスへ更新し、吸血不可エネミーでも時間経過で確実に消滅するバグを修正した。</p>
+            </div>
+        </div>
+
+        <div class="change-item">
+            <span class="change-tag tag-mod">MOD</span>
+            <div class="change-body">
+                <strong>Bullet.cs の汎用化</strong>
+                <p><code>targetTag</code> フィールドを追加し、敵向け弾（<code>"Enemy"</code>）とプレイヤー向け弾（<code>"Player"</code>）の両方に対応。ダメージ適用ロジックを <code>ApplyDamage()</code> に統一した。</p>
+            </div>
+        </div>
+
+        <div class="change-item">
+            <span class="change-tag tag-mod">MOD</span>
+            <div class="change-body">
+                <strong>PlayerInteract.cs の拡張（吸血 → 汎用インタラクト）</strong>
+                <p><code>TryAbsorbBlood()</code> を <code>TryInteract()</code> に刷新。Fキー押下時、近くに吸血可能な敵がいれば吸血、いなければ調べられる死体を探して <code>InvestigateEnemy()</code> を実行する。設定確率でコンソールに「アイテムゲット！」を表示し、一度調べた死体は再調査不可。</p>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- ── 変更ファイル一覧 ── -->
+    <div class="section">
+        <div class="section-title">
+            <div class="icon cyan">📁</div>
+            変更ファイル一覧
+        </div>
+        <div class="file-grid">
+            <div class="file-entry"><div class="dot dot-mod"></div><span>Environment/TimeManager.cs</span></div>
+            <div class="file-entry"><div class="dot dot-mod"></div><span>EnemyHealth.cs</span></div>
+            <div class="file-entry"><div class="dot dot-mod"></div><span>Bullet.cs</span></div>
+            <div class="file-entry"><div class="dot dot-mod"></div><span>Player/PlayerInteract.cs</span></div>
+            <div class="file-entry"><div class="dot dot-mod"></div><span>DayNightCycle.cs</span></div>
+            <div class="file-entry"><div class="dot dot-new"></div><span>EnemyNight.cs <em style="color:var(--text-muted);font-size:0.85em;">[NEW]</em></span></div>
+            <div class="file-entry"><div class="dot dot-new"></div><span>EnemyNoon.cs <em style="color:var(--text-muted);font-size:0.85em;">[RENAMED]</em></span></div>
+            <div class="file-entry"><div class="dot dot-del"></div><span>Core/TimeManager.cs <em style="color:var(--text-muted);font-size:0.85em;">[DEL]</em></span></div>
+        </div>
+    </div>
+
+    <!-- ── 注意事項・残課題 ── -->
+    <div class="section">
+        <div class="section-title">
+            <div class="icon orange">⚠</div>
+            注意事項・残課題
+        </div>
+
+        <div class="notice">
+            <div class="notice-title">⚠ エネミーのスポーンが停止している</div>
+            <p>
+                <code>Enemy.cs</code> のクラス名を <code>EnemyNoon</code> に変更したため、既存の Prefab（<code>Enemy_noon.prefab</code>）が <code>Assembly-CSharp::Enemy</code> を参照したままコンパイルエラー状態になっている可能性がある。
+                Unity エディタ上でPrefabを開き、コンポーネントを <code>EnemyNoon</code> に再アサインする必要がある。
+            </p>
+        </div>
+
+        <div class="notice">
+            <div class="notice-title">⚠ DayNightCycleとTimeManagerの機能が競合する可能性</div>
+            <p>統合された <code>TimeManager</code> と <code>DayNightCycle</code> の両方に太陽の回転・光強度変化のロジックが残っている。同じ Directional Light を割り当てると動作が競合するため、どちらか一方の <code>Sun Light</code> アサインを空にすること。</p>
+        </div>
+
+        <div class="notice" style="background:rgba(86,200,216,0.08); border-color:rgba(86,200,216,0.25); border-left-color:var(--accent2);">
+            <div class="notice-title" style="color:var(--accent2);">📝 Enemy_night の Prefab 作成が残タスク</div>
+            <p><code>EnemyNight.cs</code> スクリプトは作成済みだが、対応するPrefabをUnity上で作成し、<code>EnemyHealth</code> の設定（吸血不可・調べる有効・爆発エフェクト）と Bullet Prefab のアサインが必要。</p>
+        </div>
+    </div>
+
+    <!-- ── 次回の引き継ぎ事項 ── -->
+    <div class="section">
+        <div class="section-title">
+            <div class="icon green">📋</div>
+            次回への引き継ぎ事項
+        </div>
+        <div class="change-item">
+            <span class="change-tag tag-new">TODO</span>
+            <div class="change-body">
+                <strong>EnemyNoon Prefab の修正</strong>
+                <p><code>Enemy_noon.prefab</code> のコンポーネント参照が壊れているため、Unityエディタ上で <code>EnemyNoon</code> スクリプトを再アサインし、スポーン不具合を解消する。</p>
+            </div>
+        </div>
+        <div class="change-item">
+            <span class="change-tag tag-new">TODO</span>
+            <div class="change-body">
+                <strong>Enemy_night の Prefab 作成</strong>
+                <p><code>EnemyNight.cs</code> を使ったPrefabを作成し、Bullet Prefab・爆発エフェクト等を設定する。</p>
+            </div>
+        </div>
+        <div class="change-item">
+            <span class="change-tag tag-new">TODO</span>
+            <div class="change-body">
+                <strong>アイテムシステムの実装</strong>
+                <p>「調べる」操作は <code>Debug.Log</code> でのダミー出力のみ実装済み。今後、実際のアイテム取得・所持品システムへ接続する必要がある。</p>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<footer>
+    Dracul / scenario_drei &nbsp;|&nbsp; 2026-05-30 &nbsp;|&nbsp; Auto-generated by Antigravity
+</footer>
+
+</body>
+</html>

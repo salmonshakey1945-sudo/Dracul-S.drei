@@ -6,6 +6,7 @@ public class Bullet : MonoBehaviour
     public float speed = 20f;
     public float lifeTime = 3f;
     public int damage = 1; // 弾が与えるダメージ量
+    public string targetTag = "Enemy"; // 攻撃対象のタグ
 
     private Rigidbody rb;
 
@@ -27,16 +28,9 @@ public class Bullet : MonoBehaviour
     // コライダーが「Is Trigger」オフの場合呼ばれる
     void OnCollisionEnter(Collision collision)
     {
-        // 敵に当たったかチェック
-        if (collision.gameObject.CompareTag("Enemy"))
+        if (collision.gameObject.CompareTag(targetTag))
         {
-            EnemyHealth enemyHealth = collision.gameObject.GetComponent<EnemyHealth>();
-            if (enemyHealth != null)
-            {
-                enemyHealth.TakeDamage(damage);
-            }
-
-            // 何かに当たったら弾自身を消す
+            ApplyDamage(collision.gameObject);
             Destroy(gameObject);
         }
     }
@@ -44,17 +38,36 @@ public class Bullet : MonoBehaviour
     // コライダーが「Is Trigger」オンの場合呼ばれる
     void OnTriggerEnter(Collider other)
     {
-        // 敵に当たったかチェック
-        if (other.CompareTag("Enemy"))
+        if (other.CompareTag(targetTag))
         {
-            EnemyHealth enemyHealth = other.GetComponent<EnemyHealth>();
+            ApplyDamage(other.gameObject);
+            Destroy(gameObject);
+        }
+    }
+
+    private void ApplyDamage(GameObject targetObj)
+    {
+        if (targetTag == "Enemy")
+        {
+            EnemyHealth enemyHealth = targetObj.GetComponent<EnemyHealth>();
+            if (enemyHealth == null) enemyHealth = targetObj.GetComponentInParent<EnemyHealth>();
+            if (enemyHealth == null) enemyHealth = targetObj.GetComponentInChildren<EnemyHealth>();
+
             if (enemyHealth != null)
             {
                 enemyHealth.TakeDamage(damage);
             }
+        }
+        else if (targetTag == "Player")
+        {
+            var playerStats = targetObj.GetComponent<Dracul.Player.PlayerStats>();
+            if (playerStats == null) playerStats = targetObj.GetComponentInParent<Dracul.Player.PlayerStats>();
+            if (playerStats == null) playerStats = targetObj.GetComponentInChildren<Dracul.Player.PlayerStats>();
 
-            // 何かに当たったら弾自身を消す
-            Destroy(gameObject);
+            if (playerStats != null)
+            {
+                playerStats.TakeDamage(damage);
+            }
         }
     }
 }

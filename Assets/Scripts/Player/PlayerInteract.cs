@@ -48,7 +48,7 @@ namespace Dracul.Player
             // Fキーが押されたかどうかの判定
             if (Keyboard.current.fKey.wasPressedThisFrame)
             {
-                TryAbsorbBlood();
+                TryInteract();
             }
         }
 
@@ -69,13 +69,15 @@ namespace Dracul.Player
                    Keyboard.current.spaceKey.wasPressedThisFrame;
         }
 
-        private void TryAbsorbBlood()
+        private void TryInteract()
         {
             // トリガー設定されたコライダーも確実に検知するように QueryTriggerInteraction.Collide を指定
             Collider[] colliders = Physics.OverlapSphere(transform.position, interactRadius, interactLayer, QueryTriggerInteraction.Collide);
 
-            EnemyHealth closestEnemy = null;
-            float closestDistance = float.MaxValue;
+            EnemyHealth closestEnemyAbsorb = null;
+            EnemyHealth closestEnemyInvestigate = null;
+            float closestAbsorbDistance = float.MaxValue;
+            float closestInvestigateDistance = float.MaxValue;
 
             foreach (var col in colliders)
             {
@@ -83,27 +85,61 @@ namespace Dracul.Player
                 EnemyHealth enemyHealth = col.GetComponentInParent<EnemyHealth>();
                 if (enemyHealth == null) enemyHealth = col.GetComponentInChildren<EnemyHealth>();
 
-                // isAbsorbable が true で、血が残っている敵のみを対象とする
-                if (enemyHealth != null && enemyHealth.isAbsorbable && enemyHealth.bloodGiveAmount > 0)
+                if (enemyHealth != null)
                 {
                     float distance = Vector3.Distance(transform.position, col.transform.position);
-                    if (distance < closestDistance)
+
+                    // 吸血可能な敵
+                    if (enemyHealth.isAbsorbable && enemyHealth.bloodGiveAmount > 0)
                     {
-                        closestDistance = distance;
-                        closestEnemy = enemyHealth;
+                        if (distance < closestAbsorbDistance)
+                        {
+                            closestAbsorbDistance = distance;
+                            closestEnemyAbsorb = enemyHealth;
+                        }
+                    }
+                    // 調べられる敵
+                    else if (enemyHealth.isInvestigable)
+                    {
+                        if (distance < closestInvestigateDistance)
+                        {
+                            closestInvestigateDistance = distance;
+                            closestEnemyInvestigate = enemyHealth;
+                        }
                     }
                 }
             }
 
-            if (closestEnemy != null && playerStats != null)
+            // 吸血可能な敵を優先、いなければ調べる敵を対象にする
+            if (closestEnemyAbsorb != null && playerStats != null)
             {
                 Debug.Log("[PlayerInteract] 吸血開始！");
-                // 吸血処理のコルーチンを開始
-                absorbCoroutine = StartCoroutine(AbsorbRoutine(closestEnemy));
+                absorbCoroutine = StartCoroutine(AbsorbRoutine(closestEnemyAbsorb));
+            }
+            else if (closestEnemyInvestigate != null)
+            {
+                InvestigateEnemy(closestEnemyInvestigate);
             }
             else
             {
-                Debug.Log($"[PlayerInteract] 吸血できる敵が範囲内(半径{interactRadius})にいません。");
+                Debug.Log($"[PlayerInteract] インタラクトできる敵が範囲内(半径{interactRadius})にいません。");
+            }
+        }
+
+        private void InvestigateEnemy(EnemyHealth enemy)
+        {
+            // 二度と調べられないようにフラグをオフにする
+            enemy.isInvestigable = false;
+
+            // 確率でアイテムゲット判定
+            float rand = Random.value;
+            if (rand <= enemy.itemDropProbability)
+            {
+                Debug.Log("[PlayerInteract] アイテムゲット！");
+            }
+            else
+            {
+                Debug.Log("[PlayerInteract] 調べたが、何も見つからなかった。");
             }
         }
 

@@ -1,6 +1,6 @@
 using UnityEngine;
 
-public class Enemy : MonoBehaviour
+public class EnemyNoon : MonoBehaviour
 {
     [Tooltip("敵の移動スピード")]
     public float speed = 3.0f;

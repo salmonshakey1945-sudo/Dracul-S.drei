@@ -24,8 +24,16 @@ public class EnemyHealth : MonoBehaviour
     [Header("Absorption Settings")]
     [Tooltip("吸血された際に回復するBlood量")]
     public float bloodGiveAmount = 30f;
+    public bool canBeAbsorbed = true;
     [HideInInspector]
     public bool isAbsorbable = false;
+
+    [Header("Investigation Settings")]
+    public bool canBeInvestigated = false;
+    [Range(0f, 1f)]
+    public float itemDropProbability = 0.5f;
+    [HideInInspector]
+    public bool isInvestigable = false;
     
     private int currentHealth;
     private bool isDead = false;
@@ -69,18 +77,22 @@ public class EnemyHealth : MonoBehaviour
     IEnumerator DeathSequence()
     {
         /* --- 1. スクリプト・当たり判定の無効化 --- */
-        Enemy enemyScript = GetComponent<Enemy>();
-        if (enemyScript != null) enemyScript.enabled = false;
+        EnemyNoon enemyNoonScript = GetComponent<EnemyNoon>();
+        if (enemyNoonScript != null) enemyNoonScript.enabled = false;
+        
+        EnemyNight enemyNightScript = GetComponent<EnemyNight>();
+        if (enemyNightScript != null) enemyNightScript.enabled = false;
         
         Collider col = GetComponent<Collider>();
         if (col != null) 
         {
-            // 物理衝突を消し、トリガー（吸血検知用）にする
+            // 物理衝突を消し、トリガー（吸血・調査検知用）にする
             col.isTrigger = true;
         }
 
-        // 吸血可能状態にする
-        isAbsorbable = true;
+        // 状態に合わせて可能にする
+        if (canBeAbsorbed) isAbsorbable = true;
+        if (canBeInvestigated) isInvestigable = true;
 
         /* --- 2. 1回目の爆発エフェクト --- */
         if (explosionPrefab != null)
@@ -108,16 +120,13 @@ public class EnemyHealth : MonoBehaviour
         yield return new WaitForSeconds(deadStayTime);
 
         /* --- 5. 2回目の爆発エフェクト（完全消滅時） --- */
-        if (isAbsorbable) // 吸血されていなければ実行
+        if (finalExplosionPrefab != null)
         {
-            if (finalExplosionPrefab != null)
-            {
-                GameObject explosion2 = Instantiate(finalExplosionPrefab, transform.position, Quaternion.identity);
-                Destroy(explosion2, finalExplosionLifeTime);
-            }
-            
-            /* --- 6. 敵自身を完全に削除 --- */
-            Destroy(gameObject);
+            GameObject explosion2 = Instantiate(finalExplosionPrefab, transform.position, Quaternion.identity);
+            Destroy(explosion2, finalExplosionLifeTime);
         }
+        
+        /* --- 6. 敵自身を完全に削除 --- */
+        Destroy(gameObject);
     }
 }
