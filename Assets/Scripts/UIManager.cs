@@ -15,10 +15,9 @@ public class UIManager : MonoBehaviour
     [SerializeField] private Slider _bloodSlider;
     [SerializeField] private Image _bloodFillImage;
 
-    [Header("Legacy/Text UI Elements")]
+    [Header("Text UI Elements")]
     public GameObject resultCanvas;
     public TMP_Text resultText;
-    public TMP_Text lifeText;
     public TMP_Text timeText;
 
     void Awake()
@@ -80,14 +79,6 @@ public class UIManager : MonoBehaviour
         if (resultCanvas != null)
         {
             resultCanvas.SetActive(true);
-        }
-    }
-
-    public void UpdateLifeText(int health)
-    {
-        if (lifeText != null)
-        {
-            lifeText.text = "Life: " + health.ToString();
         }
     }
 

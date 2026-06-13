@@ -1,5 +1,6 @@
 using UnityEngine;
 using System.Collections;
+using Dracul.Item;
 
 public class EnemyHealth : MonoBehaviour
 {
@@ -7,11 +8,11 @@ public class EnemyHealth : MonoBehaviour
     public int maxHealth = 3;
 
     [Header("Effects")]
-    public GameObject explosionPrefab; // 1回目の爆発エフェクト
+    public GameObject explosionPrefab;
     [Tooltip("1回目の爆発エフェクトが消滅するまでの時間（秒）")]
     public float explosionLifeTime = 1.0f;
 
-    public GameObject finalExplosionPrefab; // 完全消滅時の2回目の爆発エフェクト
+    public GameObject finalExplosionPrefab;
     [Tooltip("2回目の爆発エフェクトが消滅するまでの時間（秒）")]
     public float finalExplosionLifeTime = 1.5f;
 
@@ -24,34 +25,39 @@ public class EnemyHealth : MonoBehaviour
     [Header("Absorption Settings")]
     [Tooltip("吸血された際に回復するBlood量")]
     public float bloodGiveAmount = 30f;
+    [Tooltip("この敵を吸血できるか（生物系=true, 機械系=false）")]
     public bool canBeAbsorbed = true;
     [HideInInspector]
     public bool isAbsorbable = false;
 
     [Header("Investigation Settings")]
+    [Tooltip("この敵の死体を調べられるか")]
     public bool canBeInvestigated = false;
     [Range(0f, 1f)]
+    [Tooltip("アイテムがドロップされる確率 (0〜1)")]
     public float itemDropProbability = 0.5f;
+    [Tooltip("ドロップするアイテムのPickupプレハブ（ItemPickupコンポーネントを持つもの）")]
+    public GameObject itemDropPrefab;
     [HideInInspector]
     public bool isInvestigable = false;
-    
+
     private int currentHealth;
     private bool isDead = false;
 
     void Start()
     {
-        // 生成時にHPを最大値に初期化
         currentHealth = maxHealth;
     }
 
-    // ダメージを受ける処理
+    /// <summary>
+    /// ダメージを受ける処理。HP が 0 以下になったら DeathSequence を開始する。
+    /// </summary>
     public void TakeDamage(int damage)
     {
-        if (isDead) return; // 既に死んでいる場合は処理しない
+        if (isDead) return;
 
         currentHealth -= damage;
-        
-        // HPが0以下になったら死亡処理を呼ぶ
+
         if (currentHealth <= 0)
         {
             isDead = true;
@@ -59,13 +65,14 @@ public class EnemyHealth : MonoBehaviour
         }
     }
 
-    // 完全に吸血されきった時に呼ばれる
+    /// <summary>
+    /// 完全に吸血されきったときに呼ばれる。
+    /// </summary>
     public void CompleteAbsorption()
     {
         if (!isAbsorbable) return;
         isAbsorbable = false;
 
-        // 即座に2回目の爆発エフェクトを出して消滅させる
         if (finalExplosionPrefab != null)
         {
             GameObject explosion2 = Instantiate(finalExplosionPrefab, transform.position, Quaternion.identity);
@@ -76,57 +83,72 @@ public class EnemyHealth : MonoBehaviour
 
     IEnumerator DeathSequence()
     {
-        /* --- 1. スクリプト・当たり判定の無効化 --- */
-        EnemyNoon enemyNoonScript = GetComponent<EnemyNoon>();
-        if (enemyNoonScript != null) enemyNoonScript.enabled = false;
-        
-        EnemyNight enemyNightScript = GetComponent<EnemyNight>();
-        if (enemyNightScript != null) enemyNightScript.enabled = false;
-        
-        Collider col = GetComponent<Collider>();
-        if (col != null) 
+        /* --- 1. EnemyBase（および派生クラス）を無効化 --- */
+        // EnemyBase を参照するだけでよいため、新しい敵を追加しても変更不要
+        EnemyBase enemyScript = GetComponent<EnemyBase>();
+        if (enemyScript != null)
         {
-            // 物理衝突を消し、トリガー（吸血・調査検知用）にする
+            enemyScript.OnDeath();
+            enemyScript.enabled = false;
+        }
+
+        // NavMeshAgent も停止させる
+        var navAgent = GetComponent<UnityEngine.AI.NavMeshAgent>();
+        if (navAgent != null) navAgent.enabled = false;
+
+        // コライダーを物理衝突なし・トリガーのみに変更
+        Collider col = GetComponent<Collider>();
+        if (col != null)
+        {
             col.isTrigger = true;
         }
 
-        // 状態に合わせて可能にする
+        // 状態フラグを設定
         if (canBeAbsorbed) isAbsorbable = true;
         if (canBeInvestigated) isInvestigable = true;
 
-        /* --- 2. 1回目の爆発エフェクト --- */
+        /* --- 2. アイテムドロップ（確率判定） --- */
+        if (canBeInvestigated && itemDropPrefab != null)
+        {
+            if (Random.value <= itemDropProbability)
+            {
+                // 死体の少し上にアイテムをスポーン
+                Vector3 dropPos = transform.position + Vector3.up * 0.5f;
+                Instantiate(itemDropPrefab, dropPos, Quaternion.identity);
+                Debug.Log($"[EnemyHealth] {gameObject.name} がアイテムをドロップしました。");
+            }
+        }
+
+        /* --- 3. 1回目の爆発エフェクト --- */
         if (explosionPrefab != null)
         {
             GameObject explosion1 = Instantiate(explosionPrefab, transform.position, Quaternion.identity);
             Destroy(explosion1, explosionLifeTime);
         }
 
-        /* --- 3. ゆっくり倒れるアニメーション --- */
+        /* --- 4. ゆっくり倒れるアニメーション --- */
         Quaternion startRotation = transform.rotation;
-        // 現在のY軸の向き（向いている方向）を維持したまま、後ろ（または前）に90度倒れる
         Quaternion targetRotation = Quaternion.Euler(90, transform.eulerAngles.y, 0);
 
         float elapsedTime = 0f;
         while (elapsedTime < fallDownDuration)
         {
-            // 時間の経過に合わせて現在の角度から目標の角度へ少しずつ回転させる
             transform.rotation = Quaternion.Lerp(startRotation, targetRotation, elapsedTime / fallDownDuration);
             elapsedTime += Time.deltaTime;
-            yield return null; // 1フレーム待機
+            yield return null;
         }
-        transform.rotation = targetRotation; // 最後に確実な角度に設定
+        transform.rotation = targetRotation;
 
-        /* --- 4. その場でしばらく待機 --- */
+        /* --- 5. しばらく待機（吸血・調査の猶予時間） --- */
         yield return new WaitForSeconds(deadStayTime);
 
-        /* --- 5. 2回目の爆発エフェクト（完全消滅時） --- */
+        /* --- 6. 2回目の爆発エフェクト（完全消滅） --- */
         if (finalExplosionPrefab != null)
         {
             GameObject explosion2 = Instantiate(finalExplosionPrefab, transform.position, Quaternion.identity);
             Destroy(explosion2, finalExplosionLifeTime);
         }
-        
-        /* --- 6. 敵自身を完全に削除 --- */
+
         Destroy(gameObject);
     }
 }
