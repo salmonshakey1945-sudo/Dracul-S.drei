@@ -28,6 +28,7 @@ namespace Dracul.Core
 
         [Header("Sun Settings")]
         [SerializeField] private Light _sunLight;
+        public Light SunLight => _sunLight;
         [SerializeField] private float _intensityDay = 1.0f;
         [SerializeField] private float _intensityNight = 0.0f;
         [SerializeField] private AnimationCurve _lightIntensityCurve;

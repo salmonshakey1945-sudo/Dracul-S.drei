@@ -17,6 +17,7 @@ namespace Dracul.Player
         [SerializeField] private float _currentBlood;
         [SerializeField] private bool _isBleeding;
         [SerializeField] private bool _isWeakened; // From sunlight or low blood
+        private bool _isDead = false;
 
         public float CurrentHealth => _currentHealth;
         public float CurrentBlood => _currentBlood;
@@ -71,6 +72,8 @@ namespace Dracul.Player
 
         public void TakeDamage(float amount)
         {
+            if (_isDead) return;
+
             _currentHealth -= amount;
             // Chance to bleed? Or always bleed on hit?
             // "Damage causes bleeding"
@@ -78,6 +81,7 @@ namespace Dracul.Player
 
             if (_currentHealth <= 0)
             {
+                _isDead = true;
                 Die();
             }
         }
@@ -99,7 +103,49 @@ namespace Dracul.Player
         private void Die()
         {
             Debug.Log("Player Destroyed (Functionally Disabled)");
+            EnableRagdoll();
             // TODO: Trigger Game Over or Respawn
+        }
+
+        private void EnableRagdoll()
+        {
+            // 1. アニメーターを無効化して物理演算に任せる
+            Animator animator = GetComponentInChildren<Animator>();
+            if (animator != null)
+            {
+                animator.enabled = false;
+            }
+
+            // 2. プレイヤーの操作を無効化する
+            PlayerController controller = GetComponent<PlayerController>();
+            if (controller != null)
+            {
+                controller.enabled = false;
+            }
+
+            // 3. 親のコライダーとRigidbodyを無効化（骨のコライダーと干渉させないため）
+            Collider mainCollider = GetComponent<Collider>();
+            if (mainCollider != null)
+            {
+                mainCollider.enabled = false;
+            }
+            
+            Rigidbody mainRb = GetComponent<Rigidbody>();
+            if (mainRb != null)
+            {
+                mainRb.isKinematic = true;
+                mainRb.detectCollisions = false;
+            }
+
+            // 4. 子オブジェクト（骨）の全Rigidbodyを有効化して重力で落下させる
+            Rigidbody[] ragdollRigidbodies = GetComponentsInChildren<Rigidbody>();
+            foreach (Rigidbody rb in ragdollRigidbodies)
+            {
+                if (rb == mainRb) continue;
+
+                rb.isKinematic = false;
+                rb.useGravity = true;
+            }
         }
     }
 }
