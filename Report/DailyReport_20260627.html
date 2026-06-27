@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>開発進捗と課題レポート - 2026/06/27</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f9f9f9;
+        }
+        h1 {
+            color: #2c3e50;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 10px;
+        }
+        h2 {
+            color: #2980b9;
+            margin-top: 30px;
+        }
+        .issue-box {
+            background-color: #fff;
+            border-left: 5px solid #e74c3c;
+            padding: 15px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .error-log {
+            background-color: #2c3e50;
+            color: #ecf0f1;
+            padding: 10px;
+            border-radius: 5px;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 0.9em;
+            overflow-x: auto;
+        }
+        .summary {
+            background-color: #e8f6f3;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 30px;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>開発進捗と課題レポート</h1>
+    <p><strong>日付:</strong> 2026年6月27日</p>
+
+    <div class="summary">
+        <h2>本日の実装内容</h2>
+        <ul>
+            <li>武器装備管理システム（<code>WeaponManager.cs</code>）の新規作成とEキーでの出し入れ機能の実装。</li>
+            <li>銃を構えるポーズの左手IK制御、および上半身エイムシステム（<code>GunIKController.cs</code>）の構築。</li>
+            <li>吸血中の敵消滅による <code>MissingReferenceException</code> エラーの修正。</li>
+        </ul>
+    </div>
+
+    <h2>現在発生している課題（次回持ち越し）</h2>
+
+    <div class="issue-box">
+        <h3>1. 弾の発射位置の不具合</h3>
+        <p><strong>症状:</strong> 銃口（FirePoint）から弾が発射されず、別の場所（プレイヤーの足元など）から発射されている。</p>
+        <p><strong>対策案:</strong> Inspector上での <code>PlayerAttack</code> スクリプトの <code>Fire Point</code> への正しいオブジェクト（銃のFirePoint）の割り当て再確認、またはスクリプト側での取得処理の見直し。</p>
+    </div>
+
+    <div class="issue-box">
+        <h3>2. エイム時の下半身回転の不具合</h3>
+        <p><strong>症状:</strong> 上半身のみをカメラ方向に向ける想定が、下半身（足の向き）も一緒にカメラ方向へ向いてしまっている。</p>
+        <p><strong>対策案:</strong> <code>GunIKController.cs</code> における Spine ボーンの回転上書き処理が、根本の <code>ThirdPersonController.cs</code> や Animator の回転処理と干渉している可能性の調査。Avatar Mask を使った上書きや、回転制御の分離を検討。</p>
+    </div>
+
+    <div class="issue-box">
+        <h3>3. CharacterController エラーの発生</h3>
+        <p><strong>症状:</strong> 以下のようなエラーメッセージがコンソールに出力されている。</p>
+        <div class="error-log">
+            CharacterController.Move called on inactive controller<br>
+            UnityEngine.CharacterController:Move (UnityEngine.Vector3)<br>
+            StarterAssets.ThirdPersonController:Move () (at Assets/Starter Assets/Runtime/ThirdPersonController/Scripts/ThirdPersonController.cs:271)<br>
+            StarterAssets.ThirdPersonController:Update () (at Assets/Starter Assets/Runtime/ThirdPersonController/Scripts/ThirdPersonController.cs:161)
+        </div>
+        <p><strong>対策案:</strong> <code>WeaponManager</code> 等で表示・非表示を切り替えた際、誤ってプレイヤー自身（<code>PlayerArmature</code>）や <code>CharacterController</code> を含むオブジェクトを非アクティブにしてしまっている可能性が高いため、Inspector の割り当てを要確認。</p>
+    </div>
+
+</body>
+</html>

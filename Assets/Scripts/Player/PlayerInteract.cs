@@ -179,6 +179,12 @@ namespace Dracul.Player
 
             while (elapsedTime < absorbDuration)
             {
+                if (enemy == null)
+                {
+                    // 敵が吸血中に破壊された場合はループを抜ける
+                    break;
+                }
+
                 float frameBlood = bloodPerSec * Time.deltaTime;
                 if (enemy.bloodGiveAmount < frameBlood)
                 {
@@ -192,8 +198,11 @@ namespace Dracul.Player
                 yield return null;
             }
 
-            enemy.bloodGiveAmount = 0;
-            enemy.CompleteAbsorption();
+            if (enemy != null)
+            {
+                enemy.bloodGiveAmount = 0;
+                enemy.CompleteAbsorption();
+            }
 
             EndAbsorption();
         }

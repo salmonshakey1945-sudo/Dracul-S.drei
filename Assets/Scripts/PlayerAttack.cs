@@ -13,8 +13,11 @@ public class PlayerAttack : MonoBehaviour
     [Tooltip("If left empty, Camera.main will be used.")]
     public Camera attackCamera;
 
+    private Dracul.Player.WeaponManager _weaponManager;
+
     void Start()
     {
+        _weaponManager = GetComponent<Dracul.Player.WeaponManager>();
         if (attackCamera == null)
         {
             attackCamera = Camera.main;
@@ -24,6 +27,9 @@ public class PlayerAttack : MonoBehaviour
     void Update()
     {
         if (Mouse.current == null) return;
+
+        // 武器が装備されていない場合は射撃不可
+        if (_weaponManager != null && !_weaponManager.IsWeaponEquipped) return;
 
         if (Mouse.current.leftButton.wasPressedThisFrame)
         {
