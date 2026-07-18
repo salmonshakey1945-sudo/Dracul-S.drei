@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>開発進捗レポート - 2026/07/18</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f9f9f9;
+        }
+        h1 {
+            color: #2c3e50;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 10px;
+        }
+        h2 {
+            color: #2980b9;
+            margin-top: 30px;
+        }
+        .issue-box {
+            background-color: #fff;
+            border-left: 5px solid #2ecc71;
+            padding: 15px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .summary {
+            background-color: #e8f6f3;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 30px;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>開発進捗レポート</h1>
+    <p><strong>日付:</strong> 2026年7月18日</p>
+
+    <div class="summary">
+        <h2>本日の実装・修正内容</h2>
+        <ul>
+            <li><strong>エイム制御の全面改修:</strong> <code>GunIKController.cs</code> において、Spineボーンを直接回転させる方式から、<code>Center_Rotation</code> を軸として <code>LeftHandAimTarget</code> を追従・回転させる方式へ変更。下半身が連動して回ってしまう問題を根本的に解決しました。</li>
+            <li><strong>エイムの回転制限:</strong> キャラクターの下半身（正面）を基準とし、左右±60度を超えるエイムを行えないようにクランプ処理を追加しました（人間の関節の限界をシミュレート）。</li>
+            <li><strong>弾の発射位置ズレの修正:</strong> 弾の生成タイミングを <code>LateUpdate</code> に遅延させ、IKによる銃の移動が完了した後の正確な位置を取得するようにしました。また、生成直後にプレイヤー自身のコライダーと干渉して弾かれる現象を防ぐため、<code>Physics.IgnoreCollision</code> を実装しました。</li>
+            <li><strong>銃の震え（ジッター）の解消:</strong> IKターゲットのワールド座標を <code>Lerp</code> するのではなく、目標方向のみを <code>Slerp</code> し、常に最新のアニメーションのボーン位置に同期させることで、キャラクターの移動時における激しい震えを解消しました。</li>
+        </ul>
+    </div>
+
+    <h2>現在の課題</h2>
+
+    <div class="issue-box">
+        <h3>未解決のクリティカルな不具合はありません</h3>
+        <p>本日報告されたすべての課題（弾のズレ、足の回転、銃の震え）は解決済みです。次回はサーベル（右手武器）の実装や、新たな機能追加にスムーズに移行できる状態です。</p>
+    </div>
+
+</body>
+</html>

@@ -24,6 +24,8 @@ public class PlayerAttack : MonoBehaviour
         }
     }
 
+    private bool _wantsToShoot = false;
+
     void Update()
     {
         if (Mouse.current == null) return;
@@ -33,6 +35,15 @@ public class PlayerAttack : MonoBehaviour
 
         if (Mouse.current.leftButton.wasPressedThisFrame)
         {
+            _wantsToShoot = true;
+        }
+    }
+
+    void LateUpdate()
+    {
+        if (_wantsToShoot)
+        {
+            _wantsToShoot = false;
             Shoot();
         }
     }
@@ -50,7 +61,19 @@ public class PlayerAttack : MonoBehaviour
         if (direction != Vector3.zero)
         {
             Quaternion rotation = Quaternion.LookRotation(direction);
-            Instantiate(projectilePrefab, spawnPos, rotation);
+            GameObject bullet = Instantiate(projectilePrefab, spawnPos, rotation);
+
+            // 弾がプレイヤー自身のコライダーに干渉しないようにする
+            Collider bulletCollider = bullet.GetComponent<Collider>();
+            if (bulletCollider != null)
+            {
+                // CharacterController も Collider の一種
+                Collider[] playerColliders = GetComponentsInChildren<Collider>();
+                foreach (Collider playerCol in playerColliders)
+                {
+                    Physics.IgnoreCollision(bulletCollider, playerCol);
+                }
+            }
         }
     }
 }

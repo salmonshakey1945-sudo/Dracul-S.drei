@@ -119,11 +119,6 @@ NavMeshSettings:
     debug:
       m_Flags: 0
   m_NavMeshData: {fileID: 0}
---- !u!4 &31646006 stripped
-Transform:
-  m_CorrespondingSourceObject: {fileID: 5041423592384229150, guid: 64dce48905ffd9b4293e595fa6941544, type: 3}
-  m_PrefabInstance: {fileID: 769907451}
-  m_PrefabAsset: {fileID: 0}
 --- !u!1 &31707363
 GameObject:
   m_ObjectHideFlags: 0
@@ -306,6 +301,11 @@ Transform:
   - {fileID: 363303493}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!4 &117269544 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 1726684657922567668, guid: 64dce48905ffd9b4293e595fa6941544, type: 3}
+  m_PrefabInstance: {fileID: 769907451}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &142443678
 GameObject:
   m_ObjectHideFlags: 0
@@ -819,7 +819,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!65 &359351003
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -1076,7 +1076,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerAttack
   projectilePrefab: {fileID: 6624798979097251559, guid: 05c78f9d23886bc46af6a405c08632ba, type: 3}
-  firePoint: {fileID: 31646006}
+  firePoint: {fileID: 117269544}
   maxAimDistance: 1000
   aimLayerMask:
     serializedVersion: 2
@@ -1175,6 +1175,38 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 4294967295
   raycastOffset: 1
+--- !u!114 &379537256
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 379537212}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8a62e22a685c1f845923b88f8cbe7a56, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Dracul.Player.GunIKController
+  leftHandIKTarget: {fileID: 1635242727}
+  ikWeight: 1
+  centerRotation: {fileID: 443199254}
+  cameraTransform: {fileID: 0}
+  aimSmoothSpeed: 15
+  maxYawAngle: 60
+--- !u!114 &379537257
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 379537212}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 22abf3410e9d77f428d8398559a84529, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Dracul.Player.WeaponManager
+  leftHandWeapon: {fileID: 1561187377}
+  equipKey: 19
 --- !u!1 &384257111
 GameObject:
   m_ObjectHideFlags: 0
@@ -1465,6 +1497,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5de4744b597a0c74dba98b15e46f362e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DayNightCycle
+--- !u!4 &443199254 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 9216918837717057765, guid: 64dce48905ffd9b4293e595fa6941544, type: 3}
+  m_PrefabInstance: {fileID: 769907451}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &475772889
 GameObject:
   m_ObjectHideFlags: 0
@@ -2273,6 +2310,12 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 4416926081852918481, guid: 64dce48905ffd9b4293e595fa6941544, type: 3}
       insertIndex: -1
       addedObject: {fileID: 379537254}
+    - targetCorrespondingSourceObject: {fileID: 4416926081852918481, guid: 64dce48905ffd9b4293e595fa6941544, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 379537257}
+    - targetCorrespondingSourceObject: {fileID: 4416926081852918481, guid: 64dce48905ffd9b4293e595fa6941544, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 379537256}
     - targetCorrespondingSourceObject: {fileID: 4251274685138929836, guid: 64dce48905ffd9b4293e595fa6941544, type: 3}
       insertIndex: -1
       addedObject: {fileID: 325954504}
@@ -4979,6 +5022,11 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: a1a802ecaf6775746bb2a929fb554ad8, type: 3}
+--- !u!1 &1561187377 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 71470813753866497, guid: 64dce48905ffd9b4293e595fa6941544, type: 3}
+  m_PrefabInstance: {fileID: 769907451}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &1584352138
 GameObject:
   m_ObjectHideFlags: 0
@@ -5068,6 +5116,11 @@ MonoBehaviour:
   m_OnValueChanged:
     m_PersistentCalls:
       m_Calls: []
+--- !u!4 &1635242727 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 4679859162480702526, guid: 64dce48905ffd9b4293e595fa6941544, type: 3}
+  m_PrefabInstance: {fileID: 769907451}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &1681386697 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 1399579107103275648, guid: 64dce48905ffd9b4293e595fa6941544, type: 3}
