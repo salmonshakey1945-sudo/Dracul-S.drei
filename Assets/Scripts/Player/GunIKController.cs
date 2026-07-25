@@ -105,10 +105,14 @@ namespace Dracul.Player
 
                 // --- Pitch（上下回転）の計算 ---
                 float pitch = cameraTransform.eulerAngles.x;
-                if (pitch < -180f) pitch += 360f;
+                // UnityのeulerAnglesは0〜360の値を取るため、180度より大きい場合はマイナス（上向き）に変換
+                if (pitch > 180f) pitch -= 360f;
 
-                // 目標のエイム方向
-                Vector3 targetAimDirection = Quaternion.Euler(pitch, 0f, 0f) * clampedForwardFlat;
+                // キャラクターの向いている方向を基準にしたローカルの右軸（Right）を計算
+                Vector3 rightAxis = Vector3.Cross(Vector3.up, clampedForwardFlat).normalized;
+                
+                // 右軸を中心に上下（Pitch）回転させる
+                Vector3 targetAimDirection = Quaternion.AngleAxis(pitch, rightAxis) * clampedForwardFlat;
 
                 // --- 補間処理 ---
                 // World PositionをLerpするとアニメーション中のボーンとの遅延により激しく震えるため、

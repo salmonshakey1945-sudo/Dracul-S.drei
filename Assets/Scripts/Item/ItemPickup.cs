@@ -21,6 +21,7 @@ namespace Dracul.Item
         /// <summary>
         /// プレイヤーがFキーを押したときに PlayerInteract から呼ばれる。
         /// アイテムを PlayerInventory に追加し、自身を消滅させる。
+        /// インベントリが満杯の場合はアイテムを残す。
         /// </summary>
         /// <param name="inventory">アイテムを受け取るプレイヤーインベントリ</param>
         public void Pickup(Dracul.Player.PlayerInventory inventory)
@@ -32,9 +33,19 @@ namespace Dracul.Item
                 return;
             }
 
-            isPickedUp = true;
-            inventory.AddItem(itemData);
-            Destroy(gameObject);
+            // インベントリに空きがあるか確認してから追加する
+            if (!inventory.CanAddItem(itemData))
+            {
+                Debug.Log($"[ItemPickup] インベントリが満杯のため「{itemData.itemName}」を拾えません。");
+                return;
+            }
+
+            int added = inventory.AddItem(itemData);
+            if (added > 0)
+            {
+                isPickedUp = true;
+                Destroy(gameObject);
+            }
         }
     }
 }

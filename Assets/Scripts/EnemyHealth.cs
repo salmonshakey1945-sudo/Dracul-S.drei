@@ -19,8 +19,12 @@ public class EnemyHealth : MonoBehaviour
     [Header("Death Settings")]
     [Tooltip("倒れるモーションにかかる時間（秒）")]
     public float fallDownDuration = 2.0f;
+    [Tooltip("倒れる際のY軸の高さ調整（足元ピボットの敵が地面に沈む場合は 0.5 などに設定）")]
+    public float fallDownYOffset = 0f;
     [Tooltip("倒れ終えてから完全に消滅するまでの待機時間（秒）")]
     public float deadStayTime = 90.0f;
+    [Tooltip("2回目の爆発エフェクトの後に地面に沈む演出を入れるか")]
+    public bool sinkAfterDeath = false;
 
     [Header("Absorption Settings")]
     [Tooltip("吸血された際に回復するBlood量")]
@@ -75,7 +79,8 @@ public class EnemyHealth : MonoBehaviour
 
         if (finalExplosionPrefab != null)
         {
-            GameObject explosion2 = Instantiate(finalExplosionPrefab, transform.position, Quaternion.identity);
+            Vector3 spawnPos = sinkAfterDeath ? transform.position + Vector3.up * 0.5f : transform.position;
+            GameObject explosion2 = Instantiate(finalExplosionPrefab, spawnPos, Quaternion.identity);
             Destroy(explosion2, finalExplosionLifeTime);
         }
         Destroy(gameObject);
@@ -129,24 +134,47 @@ public class EnemyHealth : MonoBehaviour
         /* --- 4. ゆっくり倒れるアニメーション --- */
         Quaternion startRotation = transform.rotation;
         Quaternion targetRotation = Quaternion.Euler(90, transform.eulerAngles.y, 0);
+        Vector3 startPosition = transform.position;
+        Vector3 targetPosition = startPosition + Vector3.up * fallDownYOffset;
 
         float elapsedTime = 0f;
         while (elapsedTime < fallDownDuration)
         {
-            transform.rotation = Quaternion.Lerp(startRotation, targetRotation, elapsedTime / fallDownDuration);
+            float t = elapsedTime / fallDownDuration;
+            transform.rotation = Quaternion.Lerp(startRotation, targetRotation, t);
+            transform.position = Vector3.Lerp(startPosition, targetPosition, t);
             elapsedTime += Time.deltaTime;
             yield return null;
         }
         transform.rotation = targetRotation;
+        transform.position = targetPosition;
 
         /* --- 5. しばらく待機（吸血・調査の猶予時間） --- */
         yield return new WaitForSeconds(deadStayTime);
 
-        /* --- 6. 2回目の爆発エフェクト（完全消滅） --- */
+        /* --- 6. 2回目の爆発エフェクト --- */
         if (finalExplosionPrefab != null)
         {
-            GameObject explosion2 = Instantiate(finalExplosionPrefab, transform.position, Quaternion.identity);
+            // sinkAfterDeath が true の場合は地面に埋まらないように少し上で再生
+            Vector3 spawnPos = sinkAfterDeath ? transform.position + Vector3.up * 0.5f : transform.position;
+            GameObject explosion2 = Instantiate(finalExplosionPrefab, spawnPos, Quaternion.identity);
             Destroy(explosion2, finalExplosionLifeTime);
+        }
+
+        /* --- 7. 沈む処理（インスペクターで有効にした場合のみ） --- */
+        if (sinkAfterDeath)
+        {
+            float sinkDuration = 2.0f; // 沈むのにかける時間
+            float sinkElapsed = 0f;
+            Rigidbody rb = GetComponent<Rigidbody>();
+            if (rb != null) rb.isKinematic = true;
+
+            while (sinkElapsed < sinkDuration)
+            {
+                transform.position += Vector3.down * (1.0f * Time.deltaTime);
+                sinkElapsed += Time.deltaTime;
+                yield return null;
+            }
         }
 
         Destroy(gameObject);

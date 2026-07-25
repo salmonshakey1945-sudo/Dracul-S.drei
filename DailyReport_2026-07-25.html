@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dracul [drei] 開発レポート - 2026年7月25日</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; margin: 0; padding: 20px; background-color: #f4f4f4; color: #333; }
+        .container { max-width: 800px; margin: 0 auto; background: #fff; padding: 30px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        h1 { color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 10px; }
+        h2 { color: #2980b9; margin-top: 30px; }
+        ul { list-style-type: square; padding-left: 20px; }
+        li { margin-bottom: 8px; }
+        .success { color: #27ae60; font-weight: bold; }
+        .info { color: #f39c12; font-weight: bold; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { padding: 12px; border: 1px solid #ddd; text-align: left; }
+        th { background-color: #f8f9fa; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Dracul [drei] 開発レポート</h1>
+        <p><strong>日付:</strong> 2026年7月25日</p>
+
+        <h2>本日の実装内容サマリー</h2>
+        <ul>
+            <li><span class="success">完了</span>: 爆発（Final Explosion Prefab）によるノックバック処理の修正</li>
+            <li><span class="success">完了</span>: アイテム（DropItem_Gear）の吹き飛び具合の調整</li>
+            <li><span class="success">完了</span>: 新規インベントリシステム（スロット＆スタック方式）の基本実装</li>
+        </ul>
+
+        <h2>1. 爆発エフェクトと敵の挙動の修正</h2>
+        <p>爆発エフェクト（Final Explosion Prefab）が再生される前に敵が地面にのめり込んで消滅してしまう問題、およびノックバックが正しく適用されない問題を修正しました。</p>
+        <ul>
+            <li><code>EnemyHealth.cs</code> における死亡シーケンス（DeathSequence）を修正し、モデルのピボット位置の違い（Enemy_night と Enemy_noon）に対応。</li>
+            <li>爆発による吹き飛ばし処理を管理する <code>ExplosionForce.cs</code> とインターフェース <code>IKnockbackable.cs</code> を実装・調整。</li>
+        </ul>
+
+        <h2>2. アイテムの吹き飛び調整</h2>
+        <p>プレイヤーとアイテムで爆発の影響を変えるため、個別の調整機能を導入しました。</p>
+        <ul>
+            <li>アイテムが吹き飛びすぎてステージ外に出たり、地面を貫通したりする問題に対処。</li>
+            <li><code>ExplosionForce.cs</code> に <code>itemForceMultiplier</code> を追加し、アイテムに対する物理的な力のみを減衰させる設定を導入。</li>
+            <li>アイテムプレハブ（DropItem_Gear）に非トリガーの BoxCollider を追加する方針を策定。</li>
+        </ul>
+
+        <h2>3. スロット式インベントリシステムの導入</h2>
+        <p>Bキーで開閉できる、RPGでおなじみのスロット式・スタック可能なインベントリシステムを実装しました。設定資料に基づき、種類ごとに上限を設定しています。</p>
+        <table>
+            <tr>
+                <th>変更/追加ファイル</th>
+                <th>役割</th>
+            </tr>
+            <tr>
+                <td><code>ItemData.cs</code></td>
+                <td>アイテムの種類（Ammo, Information等）を追加し、MaxStackCount（上限値）とPickupAmountを設定可能に拡張。</td>
+            </tr>
+            <tr>
+                <td><code>PlayerInventory.cs</code></td>
+                <td>リスト管理からスロット（InventorySlot）管理へリライト。上限に達した場合、溢れた分を新しい空きスロットへ格納するロジックを追加。</td>
+            </tr>
+            <tr>
+                <td><code>ItemPickup.cs</code></td>
+                <td>インベントリの空き容量を判定し、満杯の場合はアイテムを拾わずに残す処理を追加。</td>
+            </tr>
+            <tr>
+                <td><code>InventorySlotUI.cs</code></td>
+                <td>（新規）各マスのアイコン、所持数（例: 15/30）のUI表示を管理。</td>
+            </tr>
+            <tr>
+                <td><code>InventoryUIManager.cs</code></td>
+                <td>（新規）BキーによるインベントリUIのトグル開閉、カーソル表示の切り替え、カメラ操作の一時停止を管理。</td>
+            </tr>
+        </table>
+        
+        <h2>次回の予定</h2>
+        <ul>
+            <li>Unityエディタ上でのインベントリUIコンポーネントのアタッチと動作テスト（手順はwalkthrough.mdに記載済み）</li>
+            <li>情報アイテムの使用処理の設計</li>
+            <li>武器の実装と弾薬消費ロジックの連携</li>
+        </ul>
+    </div>
+</body>
+</html>
