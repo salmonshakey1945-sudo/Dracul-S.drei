@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>作業レポート - 2026年8月22日</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f9f9f9;
+        }
+        h1 {
+            color: #2c3e50;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 10px;
+        }
+        h2 {
+            color: #2980b9;
+            margin-top: 30px;
+        }
+        .container {
+            background-color: #fff;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .task-list {
+            list-style-type: none;
+            padding-left: 0;
+        }
+        .task-list li {
+            background: #ecf0f1;
+            margin: 10px 0;
+            padding: 15px;
+            border-left: 4px solid #3498db;
+            border-radius: 4px;
+        }
+        .code-snippet {
+            background-color: #f4f4f4;
+            padding: 10px;
+            border-radius: 4px;
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>本日の作業レポート</h1>
+        <p><strong>日付:</strong> 2026年8月22日</p>
+        <p><strong>プロジェクト:</strong> scenario_drei (Dracul-S.drei)</p>
+
+        <h2>1. アイテム取得システムの実装手順の策定</h2>
+        <ul class="task-list">
+            <li>
+                <strong>概要:</strong> 地面に落ちているアイテムをFキーで取得するシステムの実装方法について方針を決定しました。
+            </li>
+            <li>
+                <strong>詳細:</strong> 
+                既存の <code>ItemData</code> (ScriptableObject)、<code>ItemPickup</code>、<code>PlayerInteract</code>、<code>PlayerInventory</code> の仕組みを活用し、エディタ上での「プレハブバリアント（Prefab Variant）」を用いた効率的なアイテム量産フローを確認しました。
+                ベースとなるアイテムプレハブを1つ作成し、そこから銃の弾や回復アイテムなどの派生プレハブを作成する手順です。
+            </li>
+        </ul>
+
+        <h2>2. ピンク色マテリアルの修正（PBR Machine Gun）</h2>
+        <ul class="task-list">
+            <li>
+                <strong>概要:</strong> 導入したアセット（PBR Machine Gun）の <code>Mat_Machine Gun</code> および <code>Mat_Scope</code> がピンク色で表示される問題の解決策を提示しました。
+            </li>
+            <li>
+                <strong>詳細:</strong>
+                プロジェクトがURP（Universal Render Pipeline）を使用していることによる、古いBuilt-inシェーダーとの互換性エラーが原因です。
+                Render Pipeline Converterを利用して、マテリアルを一括でURP向けにアップグレードする手順を確認しました。
+            </li>
+        </ul>
+
+        <h2>次回のタスク（予定）</h2>
+        <p>引き続きアイテムの配置テストや、武器システムのインテグレーションを進める予定です。</p>
+    </div>
+</body>
+</html>

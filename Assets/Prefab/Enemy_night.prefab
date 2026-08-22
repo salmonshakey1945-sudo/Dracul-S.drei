@@ -215,7 +215,7 @@ MonoBehaviour:
   canBeAbsorbed: 0
   isAbsorbable: 0
   canBeInvestigated: 1
-  itemDropProbability: 0.1
+  itemDropProbability: 1
   itemDropPrefab: {fileID: 7580906973637122645, guid: a33c414e597b020478929b1b8dfa3b57, type: 3}
   isInvestigable: 0
 --- !u!136 &-5617866224036427222

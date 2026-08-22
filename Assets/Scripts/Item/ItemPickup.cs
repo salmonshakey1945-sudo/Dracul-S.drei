@@ -12,6 +12,9 @@ namespace Dracul.Item
         [Tooltip("このオブジェクトが表すアイテムデータ")]
         public ItemData itemData;
 
+        [Tooltip("取得数の上書き設定（0ならItemDataのpickupAmountを使用）")]
+        public int overrideAmount = 0;
+
         /// <summary>
         /// すでに取得済みかどうか。重複取得防止に使用する。
         /// </summary>
@@ -34,13 +37,14 @@ namespace Dracul.Item
             }
 
             // インベントリに空きがあるか確認してから追加する
-            if (!inventory.CanAddItem(itemData))
+            int amountToAdd = overrideAmount > 0 ? overrideAmount : itemData.pickupAmount;
+            if (!inventory.CanAddItem(itemData, amountToAdd))
             {
                 Debug.Log($"[ItemPickup] インベントリが満杯のため「{itemData.itemName}」を拾えません。");
                 return;
             }
 
-            int added = inventory.AddItem(itemData);
+            int added = inventory.AddItem(itemData, amountToAdd);
             if (added > 0)
             {
                 isPickedUp = true;

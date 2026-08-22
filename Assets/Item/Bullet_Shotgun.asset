@@ -1,0 +1,20 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0a244b0410559de4999a5519ba635cde, type: 3}
+  m_Name: Bullet_Shotgun
+  m_EditorClassIdentifier: Assembly-CSharp::Dracul.Item.ItemData
+  itemName: ShotGun_Bullet
+  description: 
+  icon: {fileID: 21300000, guid: d7db46bd27c88dd4982ca95da2bd3ae7, type: 3}
+  itemType: 3
+  maxStackCount: 10
+  pickupAmount: 1

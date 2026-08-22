@@ -7,10 +7,10 @@ namespace Dracul.Player
         [Header("Status Settings")]
         [SerializeField] private float _maxHealth = 100f;
         [SerializeField] private float _maxBlood = 100f;
-        [SerializeField] private float _bloodDecayRate = 1.0f; // Blood loss per second
+        [SerializeField] private float _sunlightBloodDecayRate = 1.0f; // 日光によるブラッドゲージ減少量
+        [SerializeField] private float _healBloodDecayRate = 2.0f; // 体力回復のためのブラッドゲージ減少量
+        [SerializeField] private float _healRate = 5.0f; // ブラッドゲージ減少による体力回復量
         [SerializeField] private float _bleedingRate = 2.0f; // Extra blood loss when bleeding
-        [SerializeField] private float _healThreshold = 50f; // Blood needed to auto-heal
-        [SerializeField] private float _healRate = 5.0f; // Health recovered per second
 
         [Header("Debug / View")]
         [SerializeField] private float _currentHealth;
@@ -39,11 +39,14 @@ namespace Dracul.Player
 
         private void HandleBloodDecay()
         {
-            float decay = _bloodDecayRate;
+            float decay = 0f;
             if (_isBleeding) decay += _bleedingRate;
 
-            _currentBlood -= decay * Time.deltaTime;
-            _currentBlood = Mathf.Clamp(_currentBlood, 0, _maxBlood);
+            if (decay > 0f)
+            {
+                _currentBlood -= decay * Time.deltaTime;
+                _currentBlood = Mathf.Clamp(_currentBlood, 0, _maxBlood);
+            }
 
             if (_currentBlood <= 0)
             {
@@ -54,13 +57,30 @@ namespace Dracul.Player
 
         private void HandleRegeneration()
         {
-            // Auto heal if blood is high enough and not at max health
-            if (_currentBlood > _healThreshold && _currentHealth < _maxHealth)
+            if (_currentHealth < _maxHealth && _currentBlood > 0)
             {
-                // Consumes a small amount of extra blood to heal? Or just passive?
-                // Reference says: "Heals over time if Blood Gauge is high."
-                _currentHealth += _healRate * Time.deltaTime;
-                _currentHealth = Mathf.Min(_currentHealth, _maxHealth);
+                float healAmount = _healRate * Time.deltaTime;
+                float bloodRequired = _healBloodDecayRate * Time.deltaTime;
+
+                if (_currentHealth + healAmount > _maxHealth)
+                {
+                    float proportion = (_maxHealth - _currentHealth) / healAmount;
+                    healAmount *= proportion;
+                    bloodRequired *= proportion;
+                }
+
+                if (_currentBlood < bloodRequired)
+                {
+                    float proportion = _currentBlood / bloodRequired;
+                    healAmount *= proportion;
+                    bloodRequired = _currentBlood;
+                }
+
+                _currentBlood -= bloodRequired;
+                _currentHealth += healAmount;
+
+                _currentBlood = Mathf.Clamp(_currentBlood, 0, _maxBlood);
+                _currentHealth = Mathf.Clamp(_currentHealth, 0, _maxHealth);
             }
         }
 
@@ -96,6 +116,10 @@ namespace Dracul.Player
         public void ApplySunlightDamage(float damagePerSecond)
         {
             TakeDamage(damagePerSecond * Time.deltaTime);
+            
+            _currentBlood -= _sunlightBloodDecayRate * Time.deltaTime;
+            _currentBlood = Mathf.Clamp(_currentBlood, 0, _maxBlood);
+
             // Sunlight also causes weakness
             _isWeakened = true;
         }

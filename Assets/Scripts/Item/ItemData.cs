@@ -9,7 +9,7 @@ namespace Dracul.Item
     {
         Consumable,   // 消耗品（将来: 使用するとステータスが変化）
         KeyItem,      // キーアイテム（将来: ストーリーで使用）
-        Material,     // 素材（将来: 合成などに使用）
+        Equipment,    // 装備品（ギアなど）
         Ammo,         // 弾薬
         Information   // 情報アイテム（特定の場所で消費）
     }
@@ -32,7 +32,7 @@ namespace Dracul.Item
         public Sprite icon;
 
         [Tooltip("アイテムの種別")]
-        public ItemType itemType = ItemType.Material;
+        public ItemType itemType = ItemType.Equipment;
 
         [Tooltip("1マスに何個まで重ねられるか（スタック上限）。情報アイテムは1推奨")]
         [Min(1)]

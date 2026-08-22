@@ -119,7 +119,16 @@ public class EnemyHealth : MonoBehaviour
             {
                 // 死体の少し上にアイテムをスポーン
                 Vector3 dropPos = transform.position + Vector3.up * 0.5f;
-                Instantiate(itemDropPrefab, dropPos, Quaternion.identity);
+                GameObject droppedItem = Instantiate(itemDropPrefab, dropPos, Quaternion.identity);
+                
+                // ドロップ数のランダム設定 (PickupAmount ～ PickupAmount + 2)
+                ItemPickup itemPickup = droppedItem.GetComponent<ItemPickup>();
+                if (itemPickup != null && itemPickup.itemData != null)
+                {
+                    int baseAmount = itemPickup.itemData.pickupAmount;
+                    itemPickup.overrideAmount = Random.Range(baseAmount, baseAmount + 3);
+                }
+
                 Debug.Log($"[EnemyHealth] {gameObject.name} がアイテムをドロップしました。");
             }
         }
