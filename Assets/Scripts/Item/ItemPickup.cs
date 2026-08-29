@@ -1,5 +1,6 @@
 using UnityEngine;
 using Dracul.Item;
+using Dracul.UI;
 
 namespace Dracul.Item
 {
@@ -14,6 +15,10 @@ namespace Dracul.Item
 
         [Tooltip("取得数の上書き設定（0ならItemDataのpickupAmountを使用）")]
         public int overrideAmount = 0;
+
+        [Tooltip("このオブジェクト固有の取得時メッセージ（設定されていればItemDataの設定より優先）")]
+        [TextArea(1, 3)]
+        public string overridePickupMessage = "";
 
         /// <summary>
         /// すでに取得済みかどうか。重複取得防止に使用する。
@@ -40,7 +45,9 @@ namespace Dracul.Item
             int amountToAdd = overrideAmount > 0 ? overrideAmount : itemData.pickupAmount;
             if (!inventory.CanAddItem(itemData, amountToAdd))
             {
-                Debug.Log($"[ItemPickup] インベントリが満杯のため「{itemData.itemName}」を拾えません。");
+                string fullMsg = $"インベントリが満杯のため「{itemData.itemName}」を拾えません。";
+                Debug.Log($"[ItemPickup] {fullMsg}");
+                MessageLogUI.AddLog($"<color=red>{fullMsg}</color>");
                 return;
             }
 
@@ -48,8 +55,31 @@ namespace Dracul.Item
             if (added > 0)
             {
                 isPickedUp = true;
+
+                // 取得メッセージの決定（overridePickupMessage > itemData.pickupMessage > デフォルトメッセージ）
+                string message = GetPickupMessage(added);
+                MessageLogUI.AddLog(message);
+
                 Destroy(gameObject);
             }
+        }
+
+        private string GetPickupMessage(int addedCount)
+        {
+            string template = !string.IsNullOrEmpty(overridePickupMessage)
+                ? overridePickupMessage
+                : itemData.pickupMessage;
+
+            if (!string.IsNullOrEmpty(template))
+            {
+                return template
+                    .Replace("{name}", itemData.itemName)
+                    .Replace("{count}", addedCount.ToString());
+            }
+
+            return addedCount > 1 
+                ? $"「{itemData.itemName}」を {addedCount} 個手に入れた。" 
+                : $"「{itemData.itemName}」を手に入れた。";
         }
     }
 }

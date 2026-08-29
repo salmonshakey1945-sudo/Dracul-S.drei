@@ -32,6 +32,8 @@ namespace Dracul.PhysicsEffects
 
         void Update()
         {
+            if (_controller == null || !_controller.enabled) return;
+
             if (_knockbackVelocity.sqrMagnitude > minVelocity * minVelocity)
             {
                 // ノックバック中の移動処理

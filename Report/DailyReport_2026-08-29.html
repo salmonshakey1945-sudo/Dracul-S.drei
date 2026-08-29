@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>作業レポート - 2026年8月29日</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 850px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f9f9f9;
+        }
+        h1 {
+            color: #2c3e50;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 10px;
+        }
+        h2 {
+            color: #2980b9;
+            margin-top: 30px;
+            border-left: 5px solid #3498db;
+            padding-left: 10px;
+        }
+        .container {
+            background-color: #fff;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .task-list {
+            list-style-type: none;
+            padding-left: 0;
+        }
+        .task-list li {
+            background: #ecf0f1;
+            margin: 12px 0;
+            padding: 15px;
+            border-left: 4px solid #3498db;
+            border-radius: 4px;
+        }
+        .code-snippet {
+            background-color: #2d3436;
+            color: #dfe6e9;
+            padding: 10px 15px;
+            border-radius: 4px;
+            font-family: Consolas, monospace;
+            overflow-x: auto;
+            margin-top: 8px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+            background: #fff;
+        }
+        th, td {
+            padding: 10px 12px;
+            border: 1px solid #ddd;
+            text-align: left;
+        }
+        th {
+            background-color: #f1f2f6;
+            color: #2f3542;
+        }
+        .badge {
+            display: inline-block;
+            padding: 3px 8px;
+            font-size: 12px;
+            font-weight: bold;
+            border-radius: 3px;
+            color: #fff;
+            background-color: #2ed573;
+        }
+        .badge-new {
+            background-color: #3742fa;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>本日の作業レポート</h1>
+        <p><strong>日付:</strong> 2026年8月29日</p>
+        <p><strong>プロジェクト:</strong> scenario_drei (Dracul-S.drei)</p>
+
+        <h2>1. メッセージウィンドウ（MessageLogUI）の実装</h2>
+        <ul class="task-list">
+            <li>
+                <strong>概要:</strong> 最新のログが最下行に追加され、古いログが上へ押し出される最大7行表示のメッセージウィンドウ制御システムを構築しました。
+            </li>
+            <li>
+                <strong>詳細:</strong>
+                <ul>
+                    <li><code>MessageLogUI.cs</code> を新規作成。どこからでも <code>MessageLogUI.AddLog("...")</code> でログを追加できる静的インターフェースを整備。</li>
+                    <li>UIの配置仕様として、画面右下に半透明背景付きのパネル（RectTransform アンカー Bottom-Right）を配置し、TextMeshProの下揃え（Bottom Alignment）により1〜7行の増減に自然に対応。</li>
+                    <li>Inspectorからのコンテキストメニューによるテスト送信機能を追加。</li>
+                </ul>
+            </li>
+        </ul>
+
+        <h2>2. アイテム取得時の個別メッセージ表示システム</h2>
+        <ul class="task-list">
+            <li>
+                <strong>概要:</strong> 特定のアイテムを取得した際に、アイテムごとに設定されたテキストをメッセージウィンドウに表示する仕組みを導入しました。
+            </li>
+            <li>
+                <strong>詳細:</strong>
+                <ul>
+                    <li><code>ItemData.cs</code> に <code>pickupMessage</code>（取得時表示テキスト）フィールドを追加。</li>
+                    <li><code>ItemPickup.cs</code> を更新し、Fキーでの取得時にメッセージウィンドウへ自動通知。プレースホルダー（<code>{name}</code> や <code>{count}</code>）やリッチテキストタグに対応。</li>
+                    <li>インベントリ満杯時にも赤文字で警告メッセージが表示される安全処理を実装。</li>
+                </ul>
+            </li>
+        </ul>
+
+        <h2>3. Infomation（情報アイテム）閲覧ライブラリ機能の実装</h2>
+        <ul class="task-list">
+            <li>
+                <strong>概要:</strong> バッグ（インベントリ）内で情報アイテムを使用・消費することでライブラリに登録され、<strong>Vキー</strong> で開く縦長ウィンドウからいつでも本文を閲覧できるシステムを実装しました。
+            </li>
+            <li>
+                <strong>詳細:</strong>
+                <ul>
+                    <li><code>ItemData.cs</code> にライブラリ表示用の本文テキスト <code>libraryContent</code> フィールドを追加。</li>
+                    <li><code>PlayerLibrary.cs</code>: プレイヤーが解放した情報アイテムの一覧および解放ステータスを管理するコンポーネントを新規作成。</li>
+                    <li><code>InventorySlotUI.cs</code> / <code>InventoryUIManager.cs</code>: インベントリ内のスロットクリックによる使用処理を実装。<code>ItemType.Information</code> をクリックするとインベントリから消費され、ライブラリへ登録される仕組みを連携。</li>
+                    <li><code>LibraryItemButton.cs</code> / <code>LibraryUIManager.cs</code>: <strong>Vキー</strong> で開閉する縦長ウィンドウ。左側に解放済み情報の一覧選択リスト、右側に選択した情報のタイトル・本文（スクロール対応）を表示する左右分割UIを実装。</li>
+                    <li><code>Infomation.asset</code> にサンプルの本文・取得メッセージを設定。</li>
+                </ul>
+            </li>
+        </ul>
+
+        <h2>変更・作成されたファイル一覧</h2>
+        <table>
+            <tr>
+                <th>ファイルパス</th>
+                <th>種別</th>
+                <th>概要</th>
+            </tr>
+            <tr>
+                <td><code>Assets/Scripts/UI/MessageLogUI.cs</code></td>
+                <td><span class="badge badge-new">新規</span></td>
+                <td>最新ログ下部追加・7行表示のメッセージウィンドウ制御</td>
+            </tr>
+            <tr>
+                <td><code>Assets/Scripts/Item/ItemData.cs</code></td>
+                <td><span class="badge">変更</span></td>
+                <td><code>pickupMessage</code>, <code>libraryContent</code> フィールドを追加</td>
+            </tr>
+            <tr>
+                <td><code>Assets/Scripts/Item/ItemPickup.cs</code></td>
+                <td><span class="badge">変更</span></td>
+                <td>取得時・満杯時のメッセージウィンドウ通知連携</td>
+            </tr>
+            <tr>
+                <td><code>Assets/Scripts/Player/PlayerLibrary.cs</code></td>
+                <td><span class="badge badge-new">新規</span></td>
+                <td>解放済み情報アイテムの管理コンポーネント</td>
+            </tr>
+            <tr>
+                <td><code>Assets/Scripts/UI/InventorySlotUI.cs</code></td>
+                <td><span class="badge">変更</span></td>
+                <td>スロットのクリックイベント検知処理を追加</td>
+            </tr>
+            <tr>
+                <td><code>Assets/Scripts/UI/InventoryUIManager.cs</code></td>
+                <td><span class="badge">変更</span></td>
+                <td>スロットクリック時の情報アイテム使用・消費・ライブラリ登録</td>
+            </tr>
+            <tr>
+                <td><code>Assets/Scripts/UI/LibraryItemButton.cs</code></td>
+                <td><span class="badge badge-new">新規</span></td>
+                <td>ライブラリ左側リストの情報選択ボタンUI</td>
+            </tr>
+            <tr>
+                <td><code>Assets/Scripts/UI/LibraryUIManager.cs</code></td>
+                <td><span class="badge badge-new">新規</span></td>
+                <td>Vキーでの開閉、左右分割UI描画管理</td>
+            </tr>
+            <tr>
+                <td><code>Assets/Item/Infomation.asset</code></td>
+                <td><span class="badge">変更</span></td>
+                <td>サンプルの本文・取得メッセージを設定</td>
+            </tr>
+        </table>
+
+        <h2>次回のタスク（予定）</h2>
+        <p>Unityエディタ上でのライブラリUIオブジェクトの配置・設定（手順書はwalkthrough.mdに記載済み）、および実機での動作確認テストを実施予定です。</p>
+    </div>
+</body>
+</html>

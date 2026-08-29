@@ -18,6 +18,9 @@ namespace Dracul.UI
         [Tooltip("プレイヤーの PlayerInventory コンポーネント")]
         public PlayerInventory playerInventory;
 
+        [Tooltip("プレイヤーの PlayerLibrary コンポーネント")]
+        public PlayerLibrary playerLibrary;
+
         [Tooltip("StarterAssetsInputs コンポーネント（カーソル制御用）")]
         public StarterAssets.StarterAssetsInputs starterAssetsInputs;
 
@@ -35,6 +38,25 @@ namespace Dracul.UI
                 inventoryPanel.SetActive(false);
             }
             _isOpen = false;
+
+            // PlayerLibrary の自動取得
+            if (playerLibrary == null)
+            {
+                playerLibrary = FindObjectOfType<PlayerLibrary>();
+            }
+
+            // スロットUIの初期化とクリックイベント登録
+            if (slotUIs != null)
+            {
+                for (int i = 0; i < slotUIs.Length; i++)
+                {
+                    if (slotUIs[i] != null)
+                    {
+                        slotUIs[i].SlotIndex = i;
+                        slotUIs[i].OnSlotClicked = HandleSlotClicked;
+                    }
+                }
+            }
 
             // PlayerInventory のイベントに登録する
             if (playerInventory != null)
@@ -148,6 +170,42 @@ namespace Dracul.UI
                 else
                 {
                     slotUIs[i].UpdateSlot(null);
+                }
+            }
+        }
+
+        /// <summary>
+        /// スロットがクリックされた時の処理（アイテムの使用）
+        /// </summary>
+        private void HandleSlotClicked(int slotIndex)
+        {
+            if (playerInventory == null) return;
+            var slots = playerInventory.Slots;
+            if (slotIndex < 0 || slotIndex >= slots.Count) return;
+
+            var slot = slots[slotIndex];
+            if (slot == null || slot.IsEmpty || slot.itemData == null) return;
+
+            // 情報アイテム（Information）の使用
+            if (slot.itemData.itemType == Dracul.Item.ItemType.Information)
+            {
+                if (playerLibrary == null)
+                {
+                    playerLibrary = PlayerLibrary.Instance ?? FindObjectOfType<PlayerLibrary>();
+                }
+
+                if (playerLibrary != null)
+                {
+                    bool unlocked = playerLibrary.UnlockInformation(slot.itemData);
+                    if (unlocked)
+                    {
+                        // バッグ内から消費
+                        playerInventory.ConsumeFromSlot(slotIndex);
+                    }
+                }
+                else
+                {
+                    Debug.LogWarning("[InventoryUIManager] PlayerLibrary がシーン内に見つかりません。");
                 }
             }
         }

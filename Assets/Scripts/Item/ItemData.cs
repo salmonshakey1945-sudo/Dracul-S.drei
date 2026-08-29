@@ -28,6 +28,14 @@ namespace Dracul.Item
         [TextArea(2, 4)]
         public string description = "";
 
+        [Tooltip("取得時にメッセージウィンドウに表示するテキスト（空なら「○○を手に入れた。」）")]
+        [TextArea(1, 3)]
+        public string pickupMessage = "";
+
+        [Tooltip("ライブラリ（Vキー）で表示する詳細文章・テキスト（空ならdescriptionを表示）")]
+        [TextArea(4, 12)]
+        public string libraryContent = "";
+
         [Tooltip("アイテムのアイコン画像（インベントリUIに表示される）")]
         public Sprite icon;
 

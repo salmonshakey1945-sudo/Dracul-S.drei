@@ -1,5 +1,7 @@
+using System;
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.EventSystems;
 using TMPro;
 using Dracul.Player;
 
@@ -7,9 +9,9 @@ namespace Dracul.UI
 {
     /// <summary>
     /// インベントリの1マス（スロット）のUI表示を管理する。
-    /// アイコン画像と所持数テキストを表示する。
+    /// アイコン画像と所持数テキストを表示し、クリックイベントを受け取る。
     /// </summary>
-    public class InventorySlotUI : MonoBehaviour
+    public class InventorySlotUI : MonoBehaviour, IPointerClickHandler
     {
         [Tooltip("アイテムのアイコンを表示するImage")]
         public Image iconImage;
@@ -26,11 +28,32 @@ namespace Dracul.UI
         [Tooltip("アイテムが入っているスロットの背景色")]
         public Color filledColor = new Color(0.25f, 0.25f, 0.25f, 0.8f);
 
+        /// <summary>このスロットのインデックス番号</summary>
+        public int SlotIndex { get; set; }
+
+        /// <summary>スロットがクリックされた時のコールバック</summary>
+        public Action<int> OnSlotClicked;
+
         private Image _backgroundImage;
+        private Button _button;
 
         void Awake()
         {
             _backgroundImage = GetComponent<Image>();
+            _button = GetComponent<Button>();
+            if (_button != null)
+            {
+                _button.onClick.AddListener(() => OnSlotClicked?.Invoke(SlotIndex));
+            }
+        }
+
+        public void OnPointerClick(PointerEventData eventData)
+        {
+            // Buttonコンポーネントがない場合でもクリックを検知
+            if (_button == null)
+            {
+                OnSlotClicked?.Invoke(SlotIndex);
+            }
         }
 
         /// <summary>

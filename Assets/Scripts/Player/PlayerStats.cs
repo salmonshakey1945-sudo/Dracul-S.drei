@@ -32,6 +32,8 @@ namespace Dracul.Player
 
         private void Update()
         {
+            if (_isDead) return;
+
             HandleBloodDecay();
             HandleRegeneration();
             CheckWeakness();
@@ -140,14 +142,41 @@ namespace Dracul.Player
                 animator.enabled = false;
             }
 
-            // 2. プレイヤーの操作を無効化する
-            PlayerController controller = GetComponent<PlayerController>();
-            if (controller != null)
+            // 2. プレイヤーの操作・制御スクリプトを無効化する
+            if (TryGetComponent<StarterAssets.ThirdPersonController>(out var thirdPersonController))
+            {
+                thirdPersonController.enabled = false;
+            }
+            if (TryGetComponent<StarterAssets.StarterAssetsInputs>(out var starterInputs))
+            {
+                starterInputs.enabled = false;
+            }
+            if (TryGetComponent<UnityEngine.InputSystem.PlayerInput>(out var playerInput))
+            {
+                playerInput.enabled = false;
+            }
+            if (TryGetComponent<PlayerAttack>(out var playerAttack))
+            {
+                playerAttack.enabled = false;
+            }
+            if (TryGetComponent<Dracul.PhysicsEffects.PlayerKnockback>(out var playerKnockback))
+            {
+                playerKnockback.enabled = false;
+            }
+            if (TryGetComponent<PlayerInteract>(out var playerInteract))
+            {
+                playerInteract.enabled = false;
+            }
+            if (TryGetComponent<GunIKController>(out var gunIK))
+            {
+                gunIK.enabled = false;
+            }
+            if (TryGetComponent<PlayerController>(out var controller))
             {
                 controller.enabled = false;
             }
 
-            // 3. 親のコライダーとRigidbodyを無効化（骨のコライダーと干渉させないため）
+            // 3. 親のコライダー（CharacterController含む）とRigidbodyを無効化（骨のコライダーと干渉させないため）
             Collider mainCollider = GetComponent<Collider>();
             if (mainCollider != null)
             {

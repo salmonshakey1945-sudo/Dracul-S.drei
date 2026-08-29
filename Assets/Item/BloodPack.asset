@@ -14,6 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Dracul.Item.ItemData
   itemName: BlooodPack
   description: 
+  pickupMessage: "\u8840\u6DB2\u30D1\u30C3\u30AF"
   icon: {fileID: 21300000, guid: 6898f028be87d8a4ba5d0b8e15a7cd5f, type: 3}
   itemType: 0
   maxStackCount: 5
