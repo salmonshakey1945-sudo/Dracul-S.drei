@@ -92,14 +92,15 @@ namespace Dracul.Player
              _isWeakened = (_currentBlood <= 0);
         }
 
-        public void TakeDamage(float amount)
+        public void TakeDamage(float amount, bool causeBleeding = true)
         {
             if (_isDead) return;
 
             _currentHealth -= amount;
-            // Chance to bleed? Or always bleed on hit?
-            // "Damage causes bleeding"
-            _isBleeding = true; 
+            if (causeBleeding)
+            {
+                _isBleeding = true;
+            }
 
             if (_currentHealth <= 0)
             {
@@ -112,17 +113,23 @@ namespace Dracul.Player
         {
             _currentBlood += amount;
             _currentBlood = Mathf.Min(_currentBlood, _maxBlood);
-            _isBleeding = false; // Feeding stops bleeding? Design choice or separate item?
+            _isBleeding = false; // Feeding stops bleeding
         }
 
-        public void ApplySunlightDamage(float damagePerSecond)
+        public void ApplySunlightDamage(float damagePerSecond, float multiplier = 1.0f)
         {
-            TakeDamage(damagePerSecond * Time.deltaTime);
+            if (multiplier <= 0f)
+            {
+                _isWeakened = (_currentBlood <= 0);
+                return;
+            }
+
+            // 日光ダメージでは外傷出血(Bleeding)を起こさない
+            TakeDamage(damagePerSecond * multiplier * Time.deltaTime, causeBleeding: false);
             
-            _currentBlood -= _sunlightBloodDecayRate * Time.deltaTime;
+            _currentBlood -= _sunlightBloodDecayRate * multiplier * Time.deltaTime;
             _currentBlood = Mathf.Clamp(_currentBlood, 0, _maxBlood);
 
-            // Sunlight also causes weakness
             _isWeakened = true;
         }
 

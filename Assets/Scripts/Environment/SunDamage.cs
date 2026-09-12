@@ -5,21 +5,46 @@ using Dracul.Player;
 namespace Dracul.Environment
 {
     /// <summary>
-    /// プレイヤーにアタッチし、日光に晒されている場合に持続ダメージを与えるスクリプト。
-    /// TimeManager の昼夜判定と太陽（Directional Light）の向きを利用して、レイキャストで影の判定を行う。
+    /// プレイヤーにアタッチし、日光に晒されている場合に持続ダメージおよびブラッドゲージ減少を与えるスクリプト。
+    /// マルチポイントレイキャスト（頭・胸・足・左右肩）による精密な遮蔽率サンプリングを行い、
+    /// 「完全日陰ではゼロ、一部露出/木漏れ日では軽減減少、日向では通常減少」を実現します。
     /// </summary>
     [RequireComponent(typeof(PlayerStats))]
     public class SunDamage : MonoBehaviour
     {
         [Header("Sun Damage Settings")]
-        [Tooltip("日光によって毎秒受けるダメージ量")]
+        [Tooltip("日光によって毎秒受ける基本ダメージ量")]
         public float damagePerSecond = 5f;
-        
-        [Tooltip("レイキャストで影となる障害物を判定するレイヤー")]
-        public LayerMask shadowLayerMask = ~0; // デフォルトですべてのレイヤーを対象
 
-        [Tooltip("レイを飛ばす開始位置の高さオフセット（足元からだと地面に当たるため）")]
-        public float raycastOffset = 1.0f;
+        [Tooltip("レイキャストで影となる障害物を判定するレイヤー")]
+        public LayerMask shadowLayerMask = ~0;
+
+        [Tooltip("レイキャストの最大探索距離")]
+        public float maxRayDistance = 500f;
+
+        [Header("Sampling Points (Offsets relative to Player)")]
+        [Tooltip("頭部オフセット")]
+        public Vector3 headOffset = new Vector3(0, 1.7f, 0);
+
+        [Tooltip("胸部オフセット")]
+        public Vector3 chestOffset = new Vector3(0, 1.0f, 0);
+
+        [Tooltip("足元オフセット")]
+        public Vector3 feetOffset = new Vector3(0, 0.2f, 0);
+
+        [Tooltip("左半身オフセット")]
+        public Vector3 leftOffset = new Vector3(-0.4f, 1.2f, 0);
+
+        [Tooltip("右半身オフセット")]
+        public Vector3 rightOffset = new Vector3(0.4f, 1.2f, 0);
+
+        [Header("Debug")]
+        [Tooltip("Sceneビューで各サンプリングRayを描画（赤: 直射日光, 黄: 葉の影/軽減, 緑: 完全遮蔽）")]
+        public bool drawDebugRays = true;
+
+        [Tooltip("現在の日光露出倍率（0 = 完全日陰/減少ゼロ, 0.1~0.9 = 軽減減少, 1.0 = 通常減少）")]
+        [Range(0f, 1f)]
+        public float currentExposureMultiplier = 0f;
 
         private PlayerStats playerStats;
 
@@ -30,38 +55,117 @@ namespace Dracul.Environment
 
         void Update()
         {
-            // TimeManager が存在しない、または「夜」の場合はダメージ判定を行わない
+            // TimeManager が存在しない、または「夜」の場合は判定を行わずリセット
             if (TimeManager.Instance == null || !TimeManager.Instance.IsDay)
             {
+                currentExposureMultiplier = 0f;
                 return;
             }
 
             Light sun = TimeManager.Instance.SunLight;
-            if (sun == null) return;
+            if (sun == null)
+            {
+                currentExposureMultiplier = 0f;
+                return;
+            }
 
-            // 太陽の方向ベクトル（Directional Light は Z軸の正方向を向いているので、その逆方向が太陽の方向）
+            // 太陽の方向ベクトル（Directional Light の逆方向）
             Vector3 sunDirection = -sun.transform.forward;
 
-            // レイを飛ばす開始位置（プレイヤーの少し上）
-            Vector3 rayStartPos = transform.position + Vector3.up * raycastOffset;
+            // プレイヤーの向きに応じたサンプリング位置を算出
+            Vector3[] samplePoints = new Vector3[]
+            {
+                transform.position + headOffset,
+                transform.position + chestOffset,
+                transform.position + feetOffset,
+                transform.position + transform.rotation * leftOffset,
+                transform.position + transform.rotation * rightOffset
+            };
 
-            // レイキャストで太陽の方向に障害物があるかチェック
-            // 距離は1000fなど十分遠くを設定
-            if (Physics.Raycast(rayStartPos, sunDirection, out RaycastHit hit, 1000f, shadowLayerMask))
+            float totalMultiplier = 0f;
+
+            for (int i = 0; i < samplePoints.Length; i++)
             {
-                // 何かにぶつかった = 影の中にいる
-                Debug.DrawRay(rayStartPos, sunDirection * hit.distance, Color.green);
-            }
-            else
-            {
-                // 何にもぶつからない = 日光に当たっている（影から出ている）
-                Debug.DrawRay(rayStartPos, sunDirection * 10f, Color.red);
-                
-                if (playerStats != null)
+                Vector3 startPos = samplePoints[i];
+                float pointMultiplier = EvaluatePointExposure(startPos, sunDirection);
+                totalMultiplier += pointMultiplier;
+
+                if (drawDebugRays)
                 {
-                    playerStats.TakeDamage(damagePerSecond * Time.deltaTime);
+                    if (pointMultiplier >= 0.99f)
+                    {
+                        Debug.DrawRay(startPos, sunDirection * 10f, Color.red);
+                    }
+                    else if (pointMultiplier > 0.01f)
+                    {
+                        Debug.DrawRay(startPos, sunDirection * 10f, Color.yellow);
+                    }
+                    else
+                    {
+                        Debug.DrawRay(startPos, sunDirection * 10f, Color.green);
+                    }
                 }
             }
+
+            // 全ポイントの平均露出度（0.0 〜 1.0）
+            currentExposureMultiplier = totalMultiplier / samplePoints.Length;
+
+            // 完全に影（0）なら減少ゼロ、部分露出/木漏れ日なら軽減減少、日向なら通常減少
+            if (playerStats != null)
+            {
+                playerStats.ApplySunlightDamage(damagePerSecond, currentExposureMultiplier);
+            }
+        }
+
+        /// <summary>
+        /// 単一サンプリング点の日光露出ペナルティ倍率を判定
+        /// </summary>
+        private float EvaluatePointExposure(Vector3 origin, Vector3 sunDir)
+        {
+            RaycastHit[] hits = Physics.RaycastAll(origin, sunDir, maxRayDistance, shadowLayerMask, QueryTriggerInteraction.Collide);
+
+            if (hits == null || hits.Length == 0)
+            {
+                // 何も遮るものがない = 直射日光 (1.0)
+                return 1.0f;
+            }
+
+            // 距離順にソート
+            System.Array.Sort(hits, (a, b) => a.distance.CompareTo(b.distance));
+
+            float bestPenalty = 1.0f;
+            bool hitValidObstacle = false;
+
+            for (int h = 0; h < hits.Length; h++)
+            {
+                var hit = hits[h];
+
+                // プレイヤー自身（および子オブジェクト）は無視
+                if (hit.transform == transform || hit.transform.IsChildOf(transform))
+                {
+                    continue;
+                }
+
+                hitValidObstacle = true;
+
+                // 遮蔽物コンポーネントをチェック
+                ShadeObject shade = hit.collider.GetComponentInParent<ShadeObject>();
+                if (shade != null)
+                {
+                    // 葉の影などの軽減遮蔽
+                    if (shade.penaltyMultiplier < bestPenalty)
+                    {
+                        bestPenalty = shade.penaltyMultiplier;
+                    }
+                }
+                else
+                {
+                    // 通常の障害物（建物・地形・幹など）は完全遮蔽 (0.0)
+                    return 0.0f;
+                }
+            }
+
+            return hitValidObstacle ? bestPenalty : 1.0f;
         }
     }
 }
