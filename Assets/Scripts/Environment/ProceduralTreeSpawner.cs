@@ -8,13 +8,24 @@ using UnityEditor;
 namespace Dracul.Environment
 {
     /// <summary>
-    /// 木などのオブジェクトをプロシージャル（手続き型）に配置するコンポーネント。
-    /// 指定されたエリア内に地面レイキャストを行い、自然な回転・スケールで木を配置します。
-    /// また、日光遮蔽・ダメージ軽減用の ShadeObject / コライダーの自動設定にも対応しています。
+    /// 木や草などのオブジェクトをプロシージャル（手続き型）に配置するコンポーネント。
+    /// 指定されたエリア内に地面レイキャストを行い、自然な回転・スケールで配置します。
+    /// 木のように真上向きに生やすことも、草のように地面の傾斜（法線）に対して垂直に生やすことも設定可能。
+    /// また、Perlin Noise や Cluster による密度の「濃淡（群生・粗密）」表現にも対応しています。
     /// </summary>
     [ExecuteAlways]
     public class ProceduralTreeSpawner : MonoBehaviour
     {
+        public enum DistributionMode
+        {
+            [InspectorName("Uniform (均等ランダム)")]
+            Uniform,
+            [InspectorName("Perlin Noise (自然なまだら模様の濃淡)")]
+            PerlinNoise,
+            [InspectorName("Clusters (島状の群生・パッチ)")]
+            Clusters
+        }
+
         public enum ShadeColliderShape
         {
             Capsule,
@@ -22,12 +33,12 @@ namespace Dracul.Environment
             MeshConvex
         }
 
-        [Header("Tree Prefabs")]
-        [Tooltip("配置する木のプレハブ一覧（Tree9_2, Tree9_3, Tree9_4, Tree9_5 など）")]
+        [Header("Object Prefabs")]
+        [Tooltip("配置するオブジェクト（木や草・低木など）のプレハブ一覧")]
         public GameObject[] treePrefabs;
 
         [Header("Spawn Settings")]
-        [Tooltip("配置する木の目標本数")]
+        [Tooltip("配置するオブジェクトの目標数")]
         public int treeCount = 50;
 
         [Tooltip("配置エリアのサイズ (X幅, Z奥行き)")]
@@ -36,22 +47,62 @@ namespace Dracul.Environment
         [Tooltip("配置エリアの中心オフセット（Transformの位置からのオフセット）")]
         public Vector3 spawnAreaOffset = Vector3.zero;
 
+        [Header("Distribution & Clustering (密度の濃淡・群生)")]
+        [Tooltip("配置分布のアルゴリズム。\n・Uniform: 全体に均等に散らばる\n・PerlinNoise: 自然界のような滑らかなまだら模様の濃淡\n・Clusters: 指定した数の塊（群生）を作って密集")]
+        public DistributionMode distributionMode = DistributionMode.Uniform;
+
+        [Tooltip("【PerlinNoise用】ノイズのスケール（値が小さいほど広大な塊、大きいほど細かなまだら模様）")]
+        [Range(0.005f, 0.2f)]
+        public float noiseScale = 0.04f;
+
+        [Tooltip("【PerlinNoise用】密度の最低閾値（この値以下のエリアには草が生えず、地面が露出します）")]
+        [Range(0f, 0.8f)]
+        public float noiseThreshold = 0.3f;
+
+        [Tooltip("【PerlinNoise用】濃淡のメリハリ（値が大きいほど密集部と薄い部の差がハッキリします）")]
+        [Range(0.5f, 3.0f)]
+        public float noiseContrast = 1.2f;
+
+        [Tooltip("【PerlinNoise用】ノイズのオフセット（シード値によって自動変化も可能）")]
+        public Vector2 noiseOffset = Vector2.zero;
+
+        [Tooltip("【Clusters用】群生（塊）の数")]
+        [Range(1, 50)]
+        public int clusterCount = 8;
+
+        [Tooltip("【Clusters用】1つの群生の広がり半径")]
+        [Range(1f, 50f)]
+        public float clusterRadius = 10f;
+
+        [Tooltip("【Clusters用】群生の外にまばらに散らす草の割合（0 = 完全に群生内のみ, 0.2 = 20%は全体に散乱）")]
+        [Range(0f, 0.5f)]
+        public float scatterRatio = 0.15f;
+
         [Header("Scale & Rotation")]
-        [Tooltip("木の基本スケール（デフォルト: 0.5, 0.5, 0.5）")]
+        [Tooltip("基本スケール（木: 0.5, 草: 1.0 など）")]
         public Vector3 baseScale = new Vector3(0.5f, 0.5f, 0.5f);
 
         [Tooltip("スケールのランダムな揺らぎ幅（0で固定、0.1なら ±0.05 の範囲でランダム）")]
-        [Range(0f, 0.5f)]
+        [Range(0f, 1f)]
         public float scaleVariation = 0.1f;
 
         [Tooltip("Y軸（向き）をランダムに回転させるか")]
         public bool randomYRotation = true;
 
-        [Tooltip("地面の傾斜（法線）に合わせるか（falseの場合は常に真上向き）")]
+        [Header("Alignment to Ground (地面への角度合わせ)")]
+        [Tooltip("地面の傾斜（法線）に対して垂直に生やすか。\n・草や岩の場合: チェックON（地面に垂直に生える）\n・木の場合: チェックOFF（重力に逆らって常に真上に向かって生える）")]
         public bool alignToGroundNormal = false;
 
+        [Tooltip("法線への合わせ具合（1.0 = 地面に完全垂直, 0.0 = 常にワールド真上）")]
+        [Range(0f, 1f)]
+        public float normalAlignmentStrength = 1.0f;
+
+        [Tooltip("配置を許可する最大傾斜角（度）。これ以上の急斜面・崖には配置しません")]
+        [Range(0f, 90f)]
+        public float maxSlopeAngle = 60f;
+
         [Header("Ground & Height Alignment")]
-        [Tooltip("配置位置のY座標オフセット（木の上下位置の微調整。浮いている場合はマイナス、埋まっている場合はプラス）")]
+        [Tooltip("配置位置のY座標オフセット（上下位置の微調整。浮いている場合はマイナス、埋まっている場合はプラス）")]
         public float yOffset = 0f;
 
         [Tooltip("地面探索用のRaycastを発射する高さ（SpawnerのY座標基準）")]
@@ -64,20 +115,20 @@ namespace Dracul.Environment
         public LayerMask groundLayer = ~0; // デフォルトはEverything
 
         [Header("Placement Rules")]
-        [Tooltip("木同士の最小間隔（重なり防止）")]
+        [Tooltip("オブジェクト同士の最小間隔（重なり防止。草なら 0.2〜0.4、木なら 3.0 など）")]
         public float minDistance = 3.0f;
 
-        [Tooltip("1本あたりの最大配置試行回数")]
-        public int maxAttemptsPerTree = 30;
+        [Tooltip("1個あたりの最大配置試行回数")]
+        public int maxAttemptsPerTree = 50;
 
-        [Tooltip("木を配置したくない障害物レイヤー（建物・道など）")]
+        [Tooltip("配置したくない障害物レイヤー（建物・道など）")]
         public LayerMask obstacleLayer = 0;
 
         [Tooltip("障害物との干渉チェック半径")]
         public float obstacleCheckRadius = 1.0f;
 
-        [Header("Leaf Shade & Sun Mitigation")]
-        [Tooltip("生成した木に日光遮蔽・軽減用の ShadeObject とコライダーを自動追加するか")]
+        [Header("Leaf Shade & Sun Mitigation (木用機能)")]
+        [Tooltip("生成したオブジェクトに日光遮蔽・軽減用の ShadeObject とコライダーを自動追加するか（草の場合はOFF推奨）")]
         public bool addShadeSystem = true;
 
         [Tooltip("葉の影に入った時のペナルティ倍率（0 = 完全無効, 0.3 = 70%カット, 1 = 軽減なし）")]
@@ -86,6 +137,10 @@ namespace Dracul.Environment
 
         [Tooltip("影判定用コライダーの形状（MeshConvexが最も葉の形状に正確です）")]
         public ShadeColliderShape shadeColliderShape = ShadeColliderShape.MeshConvex;
+
+        [Header("Optimization / Performance (草用機能)")]
+        [Tooltip("プレハブに含まれるコライダーを自動削除するか（大量の草でプレイヤーが引っかかるのを防止したい場合にON）")]
+        public bool removeColliders = false;
 
         [Header("Random Seed")]
         [Tooltip("シード値を固定して再現性を持たせるか")]
@@ -98,16 +153,19 @@ namespace Dracul.Environment
         [Tooltip("ゲーム開始時（Start）に自動生成するか")]
         public bool spawnOnStart = false;
 
-        [Tooltip("生成した木を格納する親オブジェクトの名前")]
+        [Tooltip("生成したオブジェクトを格納する親オブジェクトの名前")]
         public string containerName = "TreeContainer";
 
-        [Tooltip("生成時の詳細ログを出力するか（ヒットした地面の名前や座標を確認できます）")]
+        [Tooltip("生成時の詳細ログを出力するか")]
         public bool showDebugLog = true;
 
         /// <summary>
         /// 配置エリアの中心ワールド座標を取得
         /// </summary>
         public Vector3 AreaCenter => transform.position + spawnAreaOffset;
+
+        // Clustersモード用の一時キャッシュ
+        private List<Vector2> _cachedClusterCenters = new List<Vector2>();
 
         private void Start()
         {
@@ -118,14 +176,14 @@ namespace Dracul.Environment
         }
 
         /// <summary>
-        /// 木をプロシージャルに生成・配置します。
+        /// オブジェクトをプロシージャルに生成・配置します。
         /// </summary>
-        [ContextMenu("Generate Trees")]
+        [ContextMenu("Generate Objects")]
         public void GenerateTrees()
         {
             if (treePrefabs == null || treePrefabs.Length == 0)
             {
-                Debug.LogWarning("[ProceduralTreeSpawner] Tree Prefabs が設定されていません。", this);
+                Debug.LogWarning("[ProceduralTreeSpawner] Prefabs が設定されていません。", this);
                 return;
             }
 
@@ -135,7 +193,17 @@ namespace Dracul.Environment
                 Random.InitState(customSeed);
             }
 
-            // 既存の木コンテナをクリア
+            // ノイズオフセットが未設定ならランダムオフセット
+            Vector2 effectiveNoiseOffset = noiseOffset;
+            if (effectiveNoiseOffset == Vector2.zero)
+            {
+                effectiveNoiseOffset = new Vector2(Random.Range(-1000f, 1000f), Random.Range(-1000f, 1000f));
+            }
+
+            // Clustersモード用の中心点をサンプリング
+            SetupClusterCenters();
+
+            // 既存のコンテナをクリア
             ClearTrees();
 
             Transform container = GetOrCreateContainer();
@@ -152,12 +220,14 @@ namespace Dracul.Environment
             {
                 for (int attempt = 0; attempt < maxAttemptsPerTree; attempt++)
                 {
-                    // ランダムなX, Z位置を決定
-                    float randomX = center.x + Random.Range(-halfWidth, halfWidth);
-                    float randomZ = center.z + Random.Range(-halfDepth, halfDepth);
+                    // 分布モードに応じた候補座標サンプリング
+                    Vector2 samplePos = SampleCandidatePosition(center, halfWidth, halfDepth, effectiveNoiseOffset);
+
+                    float randomX = samplePos.x;
+                    float randomZ = samplePos.y;
                     Vector3 rayOrigin = new Vector3(randomX, center.y + raycastHeight, randomZ);
 
-                    // RaycastAll で Trigger を無視し、自身や生成済みの木以外の有効な地面を探す
+                    // RaycastAll で Trigger を無視し、自身や生成済みのオブジェクト以外の有効な地面を探す
                     RaycastHit[] hits = Physics.RaycastAll(rayOrigin, Vector3.down, raycastMaxDistance, groundLayer, QueryTriggerInteraction.Ignore);
 
                     if (hits != null && hits.Length > 0)
@@ -183,6 +253,14 @@ namespace Dracul.Environment
                         if (!validHit.HasValue) continue;
 
                         RaycastHit groundHit = validHit.Value;
+
+                        // 傾斜角チェック
+                        float slopeAngle = Vector3.Angle(groundHit.normal, Vector3.up);
+                        if (slopeAngle > maxSlopeAngle)
+                        {
+                            continue;
+                        }
+
                         lastHitColliderName = groundHit.collider.gameObject.name;
                         Vector3 targetPos = groundHit.point;
 
@@ -192,18 +270,21 @@ namespace Dracul.Environment
                             continue;
                         }
 
-                        // 既存の木との距離チェック（重なり防止）
-                        bool isTooClose = false;
-                        for (int p = 0; p < placedPositions.Count; p++)
+                        // 既存の配置物との距離チェック（重なり防止）
+                        if (minDistance > 0f)
                         {
-                            if (Vector3.Distance(targetPos, placedPositions[p]) < minDistance)
+                            bool isTooClose = false;
+                            for (int p = 0; p < placedPositions.Count; p++)
                             {
-                                isTooClose = true;
-                                break;
+                                if (Vector3.SqrMagnitude(targetPos - placedPositions[p]) < minDistance * minDistance)
+                                {
+                                    isTooClose = true;
+                                    break;
+                                }
                             }
-                        }
 
-                        if (isTooClose) continue;
+                            if (isTooClose) continue;
+                        }
 
                         // Y Offset を適用した位置に配置
                         Vector3 spawnPos = targetPos + Vector3.up * yOffset;
@@ -217,12 +298,92 @@ namespace Dracul.Environment
 
             if (showDebugLog)
             {
-                Debug.Log($"[ProceduralTreeSpawner] 木の配置が完了しました。（目標: {treeCount}本, 配置成功: {successfulCount}本 / 接地ヒット例: '{lastHitColliderName}'）", this);
+                Debug.Log($"[ProceduralTreeSpawner] 配置が完了しました。（目標: {treeCount}個, 配置成功: {successfulCount}個 / 分布: {distributionMode} / 接地ヒット例: '{lastHitColliderName}'）", this);
             }
         }
 
         /// <summary>
-        /// 1本の木をインスタンス化して配置
+        /// 分布モードに応じた配置候補座標を計算
+        /// </summary>
+        private Vector2 SampleCandidatePosition(Vector3 center, float halfWidth, float halfDepth, Vector2 nOffset)
+        {
+            switch (distributionMode)
+            {
+                case DistributionMode.PerlinNoise:
+                {
+                    // リジェクションサンプリング：ノイズ密度に応じた確率判定
+                    for (int retry = 0; retry < 15; retry++)
+                    {
+                        float candX = center.x + Random.Range(-halfWidth, halfWidth);
+                        float candZ = center.z + Random.Range(-halfDepth, halfDepth);
+
+                        float noise = Mathf.PerlinNoise((candX + nOffset.x) * noiseScale, (candZ + nOffset.y) * noiseScale);
+
+                        if (noise >= noiseThreshold)
+                        {
+                            float normalizedDensity = (noise - noiseThreshold) / Mathf.Max(0.001f, 1f - noiseThreshold);
+                            float acceptProbability = Mathf.Pow(normalizedDensity, noiseContrast);
+
+                            if (Random.value <= acceptProbability)
+                            {
+                                return new Vector2(candX, candZ);
+                            }
+                        }
+                    }
+                    // リトライ上限時は一様ランダム
+                    return new Vector2(center.x + Random.Range(-halfWidth, halfWidth), center.z + Random.Range(-halfDepth, halfDepth));
+                }
+
+                case DistributionMode.Clusters:
+                {
+                    if (_cachedClusterCenters.Count > 0 && Random.value > scatterRatio)
+                    {
+                        // いずれかのクラスタ中心の周囲に配置
+                        int cIdx = Random.Range(0, _cachedClusterCenters.Count);
+                        Vector2 cCenter = _cachedClusterCenters[cIdx];
+
+                        // ガウス風（中心ほど高密度）の円内ランダム
+                        Vector2 offset = Random.insideUnitCircle;
+                        offset = offset * (offset.magnitude * clusterRadius);
+
+                        float finalX = Mathf.Clamp(cCenter.x + offset.x, center.x - halfWidth, center.x + halfWidth);
+                        float finalZ = Mathf.Clamp(cCenter.y + offset.y, center.z - halfDepth, center.z + halfDepth);
+                        return new Vector2(finalX, finalZ);
+                    }
+                    else
+                    {
+                        // 散乱分：全体にまばらに配置
+                        return new Vector2(center.x + Random.Range(-halfWidth, halfWidth), center.z + Random.Range(-halfDepth, halfDepth));
+                    }
+                }
+
+                default: // Uniform
+                    return new Vector2(center.x + Random.Range(-halfWidth, halfWidth), center.z + Random.Range(-halfDepth, halfDepth));
+            }
+        }
+
+        /// <summary>
+        /// クラスタ中心をランダム決定
+        /// </summary>
+        private void SetupClusterCenters()
+        {
+            _cachedClusterCenters.Clear();
+            if (distributionMode != DistributionMode.Clusters) return;
+
+            Vector3 center = AreaCenter;
+            float halfWidth = spawnAreaSize.x * 0.5f;
+            float halfDepth = spawnAreaSize.y * 0.5f;
+
+            for (int i = 0; i < clusterCount; i++)
+            {
+                float cx = center.x + Random.Range(-halfWidth * 0.85f, halfWidth * 0.85f);
+                float cz = center.z + Random.Range(-halfDepth * 0.85f, halfDepth * 0.85f);
+                _cachedClusterCenters.Add(new Vector2(cx, cz));
+            }
+        }
+
+        /// <summary>
+        /// 1つのオブジェクトをインスタンス化して配置
         /// </summary>
         private void SpawnSingleTree(Vector3 position, Vector3 normal, Transform parent)
         {
@@ -235,14 +396,23 @@ namespace Dracul.Environment
             Quaternion rotation;
             if (alignToGroundNormal)
             {
-                rotation = Quaternion.FromToRotation(Vector3.up, normal);
+                // 地面法線に合わせて傾ける（草など）
+                Vector3 targetUp = Vector3.Slerp(Vector3.up, normal, normalAlignmentStrength);
+                Quaternion normalRotation = Quaternion.FromToRotation(Vector3.up, targetUp);
+
                 if (randomYRotation)
                 {
-                    rotation *= Quaternion.Euler(0f, Random.Range(0f, 360f), 0f);
+                    Quaternion randomRot = Quaternion.Euler(0f, Random.Range(0f, 360f), 0f);
+                    rotation = normalRotation * randomRot;
+                }
+                else
+                {
+                    rotation = normalRotation;
                 }
             }
             else
             {
+                // 常にワールド真上向き（木など）
                 float yAngle = randomYRotation ? Random.Range(0f, 360f) : 0f;
                 rotation = Quaternion.Euler(0f, yAngle, 0f);
             }
@@ -255,7 +425,7 @@ namespace Dracul.Environment
                 treeObj = (GameObject)PrefabUtility.InstantiatePrefab(selectedPrefab, parent);
                 treeObj.transform.position = position;
                 treeObj.transform.rotation = rotation;
-                Undo.RegisterCreatedObjectUndo(treeObj, "Spawn Procedural Tree");
+                Undo.RegisterCreatedObjectUndo(treeObj, "Spawn Procedural Object");
             }
             else
             {
@@ -274,7 +444,24 @@ namespace Dracul.Environment
             );
             treeObj.transform.localScale = finalScale;
 
-            // 影システム（ShadeObject / 判定コライダー）のセットアップ
+            // コライダー削除（草用オプション）
+            if (removeColliders)
+            {
+                Collider[] colliders = treeObj.GetComponentsInChildren<Collider>();
+                for (int c = 0; c < colliders.Length; c++)
+                {
+                    if (Application.isPlaying)
+                    {
+                        Destroy(colliders[c]);
+                    }
+                    else
+                    {
+                        DestroyImmediate(colliders[c]);
+                    }
+                }
+            }
+
+            // 影システム（ShadeObject / 判定コライダー）のセットアップ（木用）
             if (addShadeSystem)
             {
                 SetupTreeShade(treeObj);
@@ -337,9 +524,9 @@ namespace Dracul.Environment
         }
 
         /// <summary>
-        /// 生成した木をすべて削除します。
+        /// 生成したオブジェクトをすべて削除します。
         /// </summary>
-        [ContextMenu("Clear Trees")]
+        [ContextMenu("Clear Objects")]
         public void ClearTrees()
         {
             Transform container = transform.Find(containerName);
@@ -361,7 +548,7 @@ namespace Dracul.Environment
         }
 
         /// <summary>
-        /// 木をまとめる親オブジェクトを取得または作成
+        /// オブジェクトをまとめる親オブジェクトを取得または作成
         /// </summary>
         private Transform GetOrCreateContainer()
         {
@@ -373,7 +560,7 @@ namespace Dracul.Environment
 #if UNITY_EDITOR
                 if (!Application.isPlaying)
                 {
-                    Undo.RegisterCreatedObjectUndo(obj, "Create Tree Container");
+                    Undo.RegisterCreatedObjectUndo(obj, "Create Container");
                 }
 #endif
                 container = obj.transform;
@@ -395,6 +582,17 @@ namespace Dracul.Environment
             Gizmos.color = Color.cyan;
             Gizmos.DrawLine(center, center + Vector3.up * raycastHeight);
             Gizmos.DrawWireCube(center + Vector3.up * raycastHeight, new Vector3(spawnAreaSize.x * 0.1f, 0.1f, spawnAreaSize.y * 0.1f));
+
+            // Clustersモードのプレビューギズモ
+            if (distributionMode == DistributionMode.Clusters && _cachedClusterCenters != null && _cachedClusterCenters.Count > 0)
+            {
+                Gizmos.color = new Color(1.0f, 0.8f, 0.2f, 0.6f);
+                for (int i = 0; i < _cachedClusterCenters.Count; i++)
+                {
+                    Vector3 cPos = new Vector3(_cachedClusterCenters[i].x, center.y, _cachedClusterCenters[i].y);
+                    Gizmos.DrawWireSphere(cPos, clusterRadius);
+                }
+            }
         }
     }
 }
