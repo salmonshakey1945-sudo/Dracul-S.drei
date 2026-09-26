@@ -23,7 +23,13 @@ namespace Dracul.Environment
             [InspectorName("Perlin Noise (自然なまだら模様の濃淡)")]
             PerlinNoise,
             [InspectorName("Clusters (島状の群生・パッチ)")]
-            Clusters
+            Clusters,
+            [InspectorName("Tree Proximity (木の根元・下草に密集)")]
+            TreeProximity,
+            [InspectorName("Tree Ring (幹を避け樹冠のフチ・木漏れ日ゾーンに群生)")]
+            TreeRing,
+            [InspectorName("Tree Avoidance (木を避けて開けた平地に密集)")]
+            TreeAvoidance
         }
 
         public enum ShadeColliderShape
@@ -78,6 +84,29 @@ namespace Dracul.Environment
         [Range(0f, 0.5f)]
         public float scatterRatio = 0.15f;
 
+        [Header("Tree Relation Settings (木との連動・下草設定)")]
+        [Tooltip("参照する木々の親コンテナ（Transform）。未設定時はシーン内の 'TreeSpawner' または 'TreeContainer' を自動探索します")]
+        public Transform treeSourceContainer;
+
+        [Tooltip("【Tree連動用】木周辺に集中させる草の割合（0.85なら85%が木の周り、15%が全体にまばらに散乱して自然な散らばりを作ります）")]
+        [Range(0f, 1f)]
+        public float treeProximityFocus = 0.85f;
+
+        [Tooltip("木の幹直下の除外半径（木の幹の中に草が生えるのを防止する最小距離）")]
+        [Range(0f, 5f)]
+        public float treeInnerRadius = 0.8f;
+
+        [Tooltip("木の影響が及ぶ外側半径（木の根元からどこまで草を広げるか）")]
+        [Range(1f, 30f)]
+        public float treeOuterRadius = 6.0f;
+
+        [Tooltip("木周辺での密度の偏り度合い（1.0 = 均等, 2.0 = 幹に近いほど高密度, 0.5 = 外側ほど高密度）")]
+        [Range(0.2f, 3.0f)]
+        public float treeFalloff = 1.5f;
+
+        [Tooltip("どの分布モード（UniformやPerlinNoise含む）でも、木の幹(treeInnerRadius)へのめり込み配置を防止するか")]
+        public bool preventTrunkOverlap = true;
+
         [Header("Scale & Rotation")]
         [Tooltip("基本スケール（木: 0.5, 草: 1.0 など）")]
         public Vector3 baseScale = new Vector3(0.5f, 0.5f, 0.5f);
@@ -105,6 +134,10 @@ namespace Dracul.Environment
         [Tooltip("配置位置のY座標オフセット（上下位置の微調整。浮いている場合はマイナス、埋まっている場合はプラス）")]
         public float yOffset = 0f;
 
+        [Tooltip("オブジェクトのスケール・高さに応じて、自動的に地面に何％埋め込むか（0 = 地表ぴったり, 0.35 = 35%埋める）\n岩をドッシリ接地させるのに最適です")]
+        [Range(0f, 0.8f)]
+        public float groundSinkRatio = 0.0f;
+
         [Tooltip("地面探索用のRaycastを発射する高さ（SpawnerのY座標基準）")]
         public float raycastHeight = 50f;
 
@@ -113,6 +146,20 @@ namespace Dracul.Environment
 
         [Tooltip("地面判定を行うレイヤーマスク（Raycast用）")]
         public LayerMask groundLayer = ~0; // デフォルトはEverything
+
+        [Header("Parent-Child Satellite Spawn (親子ペア配置・岩用機能)")]
+        [Tooltip("親オブジェクト（大きな岩）の周囲に、小さな子オブジェクト（小石）を添えるように配置するか")]
+        public bool spawnChildSatellites = false;
+
+        [Tooltip("親1個あたりに添える子オブジェクトの数")]
+        [Range(1, 4)]
+        public int satelliteChildCount = 2;
+
+        [Tooltip("親からの距離範囲 (最小〜最大)")]
+        public Vector2 satelliteDistanceRange = new Vector2(0.6f, 1.8f);
+
+        [Tooltip("親に対する子オブジェクトのスケール比率 (最小〜最大)")]
+        public Vector2 satelliteScaleMultiplier = new Vector2(0.25f, 0.45f);
 
         [Header("Placement Rules")]
         [Tooltip("オブジェクト同士の最小間隔（重なり防止。草なら 0.2〜0.4、木なら 3.0 など）")]
@@ -167,6 +214,9 @@ namespace Dracul.Environment
         // Clustersモード用の一時キャッシュ
         private List<Vector2> _cachedClusterCenters = new List<Vector2>();
 
+        // 木との連動用の一時キャッシュ
+        private List<Vector3> _cachedTreePositions = new List<Vector3>();
+
         private void Start()
         {
             if (Application.isPlaying && spawnOnStart)
@@ -187,6 +237,16 @@ namespace Dracul.Environment
                 return;
             }
 
+#if UNITY_EDITOR
+            int undoGroup = -1;
+            if (!Application.isPlaying)
+            {
+                Undo.IncrementCurrentGroup();
+                undoGroup = Undo.GetCurrentGroup();
+                Undo.SetCurrentGroupName("Generate Procedural Objects");
+            }
+#endif
+
             // シード設定
             if (useRandomSeed)
             {
@@ -200,8 +260,9 @@ namespace Dracul.Environment
                 effectiveNoiseOffset = new Vector2(Random.Range(-1000f, 1000f), Random.Range(-1000f, 1000f));
             }
 
-            // Clustersモード用の中心点をサンプリング
+            // モードに応じた事前準備
             SetupClusterCenters();
+            CollectTreePositions();
 
             // 既存のコンテナをクリア
             ClearTrees();
@@ -286,11 +347,34 @@ namespace Dracul.Environment
                             if (isTooClose) continue;
                         }
 
+                        // 木の幹との重なりチェック（草が木の幹を突き抜けるのを防止）
+                        if (preventTrunkOverlap && _cachedTreePositions.Count > 0 && treeInnerRadius > 0f)
+                        {
+                            bool isInsideTrunk = false;
+                            for (int t = 0; t < _cachedTreePositions.Count; t++)
+                            {
+                                Vector2 treeXZ = new Vector2(_cachedTreePositions[t].x, _cachedTreePositions[t].z);
+                                Vector2 targetXZ = new Vector2(targetPos.x, targetPos.z);
+                                if (Vector2.SqrMagnitude(targetXZ - treeXZ) < treeInnerRadius * treeInnerRadius)
+                                {
+                                    isInsideTrunk = true;
+                                    break;
+                                }
+                            }
+                            if (isInsideTrunk) continue;
+                        }
+
                         // Y Offset を適用した位置に配置
                         Vector3 spawnPos = targetPos + Vector3.up * yOffset;
                         SpawnSingleTree(spawnPos, groundHit.normal, container);
                         placedPositions.Add(targetPos);
                         successfulCount++;
+
+                        // 親子ペア配置（子石の自動添え置き）
+                        if (spawnChildSatellites)
+                        {
+                            SpawnSatellites(targetPos, container, placedPositions);
+                        }
                         break;
                     }
                 }
@@ -300,6 +384,13 @@ namespace Dracul.Environment
             {
                 Debug.Log($"[ProceduralTreeSpawner] 配置が完了しました。（目標: {treeCount}個, 配置成功: {successfulCount}個 / 分布: {distributionMode} / 接地ヒット例: '{lastHitColliderName}'）", this);
             }
+
+#if UNITY_EDITOR
+            if (!Application.isPlaying && undoGroup != -1)
+            {
+                Undo.CollapseUndoOperations(undoGroup);
+            }
+#endif
         }
 
         /// <summary>
@@ -357,6 +448,90 @@ namespace Dracul.Environment
                     }
                 }
 
+                case DistributionMode.TreeProximity:
+                {
+                    // 木の周辺（根元・下草）に集中配置
+                    if (_cachedTreePositions.Count > 0 && Random.value <= treeProximityFocus)
+                    {
+                        int tIdx = Random.Range(0, _cachedTreePositions.Count);
+                        Vector3 tPos = _cachedTreePositions[tIdx];
+
+                        float angle = Random.Range(0f, Mathf.PI * 2f);
+                        // treeFalloff: 1.0=均等, >1.0=幹に近いほど密集
+                        float t = Mathf.Pow(Random.value, treeFalloff);
+                        float dist = Mathf.Lerp(treeInnerRadius, treeOuterRadius, t);
+
+                        float candX = Mathf.Clamp(tPos.x + Mathf.Cos(angle) * dist, center.x - halfWidth, center.x + halfWidth);
+                        float candZ = Mathf.Clamp(tPos.z + Mathf.Sin(angle) * dist, center.z - halfDepth, center.z + halfDepth);
+                        return new Vector2(candX, candZ);
+                    }
+                    else
+                    {
+                        // こぼれ種（散乱分）：全体にまばらに配置
+                        return new Vector2(center.x + Random.Range(-halfWidth, halfWidth), center.z + Random.Range(-halfDepth, halfDepth));
+                    }
+                }
+
+                case DistributionMode.TreeRing:
+                {
+                    // 幹の直下と外側を避け、樹冠のフチ（木漏れ日ゾーン）にリング状に集中配置
+                    if (_cachedTreePositions.Count > 0 && Random.value <= treeProximityFocus)
+                    {
+                        int tIdx = Random.Range(0, _cachedTreePositions.Count);
+                        Vector3 tPos = _cachedTreePositions[tIdx];
+
+                        float angle = Random.Range(0f, Mathf.PI * 2f);
+                        // 三角分布（中央値付近が最も高密度になる山型）
+                        float t = (Random.value + Random.value) * 0.5f;
+                        float dist = Mathf.Lerp(treeInnerRadius, treeOuterRadius, t);
+
+                        float candX = Mathf.Clamp(tPos.x + Mathf.Cos(angle) * dist, center.x - halfWidth, center.x + halfWidth);
+                        float candZ = Mathf.Clamp(tPos.z + Mathf.Sin(angle) * dist, center.z - halfDepth, center.z + halfDepth);
+                        return new Vector2(candX, candZ);
+                    }
+                    else
+                    {
+                        return new Vector2(center.x + Random.Range(-halfWidth, halfWidth), center.z + Random.Range(-halfDepth, halfDepth));
+                    }
+                }
+
+                case DistributionMode.TreeAvoidance:
+                {
+                    // 木がある場所を避け、開けた平地に集中配置
+                    if (_cachedTreePositions.Count > 0)
+                    {
+                        for (int retry = 0; retry < 20; retry++)
+                        {
+                            float candX = center.x + Random.Range(-halfWidth, halfWidth);
+                            float candZ = center.z + Random.Range(-halfDepth, halfDepth);
+                            Vector2 candPos = new Vector2(candX, candZ);
+
+                            // 最寄りの木との距離を算出
+                            float minTreeDist = float.MaxValue;
+                            for (int t = 0; t < _cachedTreePositions.Count; t++)
+                            {
+                                Vector2 treeXZ = new Vector2(_cachedTreePositions[t].x, _cachedTreePositions[t].z);
+                                float d = Vector2.Distance(candPos, treeXZ);
+                                if (d < minTreeDist) minTreeDist = d;
+                            }
+
+                            if (minTreeDist >= treeOuterRadius)
+                            {
+                                return candPos;
+                            }
+                            else if (minTreeDist > treeInnerRadius)
+                            {
+                                float norm = (minTreeDist - treeInnerRadius) / Mathf.Max(0.001f, treeOuterRadius - treeInnerRadius);
+                                if (Random.value <= Mathf.Pow(norm, treeFalloff))
+                                {
+                                    return candPos;
+                                }
+                            }
+                        }
+                    }
+                    return new Vector2(center.x + Random.Range(-halfWidth, halfWidth), center.z + Random.Range(-halfDepth, halfDepth));
+                }
+
                 default: // Uniform
                     return new Vector2(center.x + Random.Range(-halfWidth, halfWidth), center.z + Random.Range(-halfDepth, halfDepth));
             }
@@ -383,14 +558,75 @@ namespace Dracul.Environment
         }
 
         /// <summary>
+        /// 参照する木々の位置を収集・キャッシュ
+        /// </summary>
+        private void CollectTreePositions()
+        {
+            _cachedTreePositions.Clear();
+
+            // 木連動モード または 幹めり込み防止が有効な場合に木を探索
+            bool needsTrees = (distributionMode == DistributionMode.TreeProximity ||
+                               distributionMode == DistributionMode.TreeRing ||
+                               distributionMode == DistributionMode.TreeAvoidance ||
+                               preventTrunkOverlap);
+
+            if (!needsTrees) return;
+
+            Transform targetContainer = treeSourceContainer;
+
+            // 未設定時はシーン内から自動探索
+            if (targetContainer == null)
+            {
+                // 1. 他の ProceduralTreeSpawner を探す
+                ProceduralTreeSpawner[] spawners = Object.FindObjectsByType<ProceduralTreeSpawner>(FindObjectsSortMode.None);
+                foreach (var spawner in spawners)
+                {
+                    if (spawner != this)
+                    {
+                        Transform found = spawner.transform.Find(spawner.containerName);
+                        if (found != null && found.childCount > 0)
+                        {
+                            targetContainer = found;
+                            break;
+                        }
+                    }
+                }
+
+                // 2. それでも見つからなければ一般的な名前で検索
+                if (targetContainer == null)
+                {
+                    GameObject go = GameObject.Find("TreeSpawner/TreeContainer") ?? GameObject.Find("TreeContainer");
+                    if (go != null && go.transform != transform.Find(containerName))
+                    {
+                        targetContainer = go.transform;
+                    }
+                }
+            }
+
+            if (targetContainer != null)
+            {
+                for (int i = 0; i < targetContainer.childCount; i++)
+                {
+                    Transform child = targetContainer.GetChild(i);
+                    _cachedTreePositions.Add(child.position);
+                }
+            }
+
+            if (_cachedTreePositions.Count == 0 && (distributionMode == DistributionMode.TreeProximity || distributionMode == DistributionMode.TreeRing || distributionMode == DistributionMode.TreeAvoidance))
+            {
+                Debug.LogWarning("[ProceduralTreeSpawner] 木オブジェクトが見つかりませんでした。先に木を生成するか、'Tree Source Container' をインスペクターで指定してください。", this);
+            }
+        }
+
+        /// <summary>
         /// 1つのオブジェクトをインスタンス化して配置
         /// </summary>
-        private void SpawnSingleTree(Vector3 position, Vector3 normal, Transform parent)
+        private GameObject SpawnSingleTree(Vector3 position, Vector3 normal, Transform parent, float scaleMultiplier = 1.0f)
         {
             // ランダムにプレハブを選択
             int prefabIndex = Random.Range(0, treePrefabs.Length);
             GameObject selectedPrefab = treePrefabs[prefabIndex];
-            if (selectedPrefab == null) return;
+            if (selectedPrefab == null) return null;
 
             // 回転の決定
             Quaternion rotation;
@@ -425,7 +661,6 @@ namespace Dracul.Environment
                 treeObj = (GameObject)PrefabUtility.InstantiatePrefab(selectedPrefab, parent);
                 treeObj.transform.position = position;
                 treeObj.transform.rotation = rotation;
-                Undo.RegisterCreatedObjectUndo(treeObj, "Spawn Procedural Object");
             }
             else
             {
@@ -435,14 +670,20 @@ namespace Dracul.Environment
             treeObj = Instantiate(selectedPrefab, position, rotation, parent);
 #endif
 
-            // スケール計算
+            // スケール計算（親子ペアの子の場合は scaleMultiplier で縮小）
             float scaleMod = (scaleVariation > 0f) ? Random.Range(-scaleVariation * 0.5f, scaleVariation * 0.5f) : 0f;
             Vector3 finalScale = new Vector3(
-                Mathf.Max(0.01f, baseScale.x + scaleMod),
-                Mathf.Max(0.01f, baseScale.y + scaleMod),
-                Mathf.Max(0.01f, baseScale.z + scaleMod)
+                Mathf.Max(0.01f, (baseScale.x + scaleMod) * scaleMultiplier),
+                Mathf.Max(0.01f, (baseScale.y + scaleMod) * scaleMultiplier),
+                Mathf.Max(0.01f, (baseScale.z + scaleMod) * scaleMultiplier)
             );
             treeObj.transform.localScale = finalScale;
+
+            // 地面への埋め込み補正（スケールに応じた自然な沈み込み）
+            if (groundSinkRatio > 0f)
+            {
+                treeObj.transform.position -= Vector3.up * (finalScale.y * groundSinkRatio);
+            }
 
             // コライダー削除（草用オプション）
             if (removeColliders)
@@ -465,6 +706,51 @@ namespace Dracul.Environment
             if (addShadeSystem)
             {
                 SetupTreeShade(treeObj);
+            }
+
+            return treeObj;
+        }
+
+        /// <summary>
+        /// 親オブジェクト（大きな岩など）の足元に小さな子オブジェクト（小石など）を添えるように配置
+        /// </summary>
+        private void SpawnSatellites(Vector3 parentPos, Transform container, List<Vector3> placedPositions)
+        {
+            for (int s = 0; s < satelliteChildCount; s++)
+            {
+                float angle = Random.Range(0f, Mathf.PI * 2f);
+                float dist = Random.Range(satelliteDistanceRange.x, satelliteDistanceRange.y);
+                float satX = parentPos.x + Mathf.Cos(angle) * dist;
+                float satZ = parentPos.z + Mathf.Sin(angle) * dist;
+
+                Vector3 rayOrigin = new Vector3(satX, parentPos.y + raycastHeight, satZ);
+                RaycastHit[] hits = Physics.RaycastAll(rayOrigin, Vector3.down, raycastMaxDistance, groundLayer, QueryTriggerInteraction.Ignore);
+
+                if (hits != null && hits.Length > 0)
+                {
+                    System.Array.Sort(hits, (a, b) => a.distance.CompareTo(b.distance));
+                    RaycastHit? validHit = null;
+
+                    for (int h = 0; h < hits.Length; h++)
+                    {
+                        var hit = hits[h];
+                        if (hit.transform == transform || hit.transform.IsChildOf(transform) || hit.transform.IsChildOf(container))
+                            continue;
+                        validHit = hit;
+                        break;
+                    }
+
+                    if (!validHit.HasValue) continue;
+                    RaycastHit groundHit = validHit.Value;
+
+                    if (Vector3.Angle(groundHit.normal, Vector3.up) > maxSlopeAngle) continue;
+
+                    float childScaleMult = Random.Range(satelliteScaleMultiplier.x, satelliteScaleMultiplier.y);
+                    Vector3 childSpawnPos = groundHit.point + Vector3.up * yOffset;
+
+                    SpawnSingleTree(childSpawnPos, groundHit.normal, container, childScaleMult);
+                    placedPositions.Add(groundHit.point);
+                }
             }
         }
 
@@ -591,6 +877,34 @@ namespace Dracul.Environment
                 {
                     Vector3 cPos = new Vector3(_cachedClusterCenters[i].x, center.y, _cachedClusterCenters[i].y);
                     Gizmos.DrawWireSphere(cPos, clusterRadius);
+                }
+            }
+
+            // 木との連動モード（TreeProximity / TreeRing / TreeAvoidance）のプレビューギズモ
+            if (distributionMode == DistributionMode.TreeProximity || distributionMode == DistributionMode.TreeRing || distributionMode == DistributionMode.TreeAvoidance)
+            {
+                if (_cachedTreePositions == null || _cachedTreePositions.Count == 0)
+                {
+                    CollectTreePositions();
+                }
+
+                if (_cachedTreePositions != null && _cachedTreePositions.Count > 0)
+                {
+                    for (int i = 0; i < _cachedTreePositions.Count; i++)
+                    {
+                        Vector3 tPos = _cachedTreePositions[i];
+
+                        // 木の影響外側半径（草の広がり範囲）: 緑色
+                        Gizmos.color = new Color(0.2f, 0.9f, 0.4f, 0.4f);
+                        Gizmos.DrawWireSphere(tPos, treeOuterRadius);
+
+                        // 幹直下の除外半径: 赤色
+                        if (treeInnerRadius > 0f)
+                        {
+                            Gizmos.color = new Color(1.0f, 0.3f, 0.2f, 0.5f);
+                            Gizmos.DrawWireSphere(tPos, treeInnerRadius);
+                        }
+                    }
                 }
             }
         }

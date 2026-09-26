@@ -47,14 +47,20 @@ namespace Dracul.Environment.Editor
             {
                 GrassPrefabGenerator.GenerateAllGrassPrefabs();
             }
+
+            GUI.backgroundColor = new Color(0.85f, 0.65f, 0.4f);
+            if (GUILayout.Button("Generate Rock Prefabs (岩プレハブ自動生成)", GUILayout.Height(28)))
+            {
+                RockPrefabGenerator.GenerateAllRockPrefabs();
+            }
             GUI.backgroundColor = Color.white;
 
             EditorGUILayout.Space(5);
             EditorGUILayout.HelpBox(
                 "【使い分けと設定ガイド】\n" +
-                "・「密度の濃淡」: 'Distribution Mode' を 'Perlin Noise'（自然なまだら模様）または 'Clusters'（島状の群生）に設定すると、草が固まって生える場所と地面が露出する場所のメリハリが作れます。\n" +
                 "・「木」を生やす場合: 'Align To Ground Normal' を OFF（常に真上向き）。\n" +
-                "・「草」を生やす場合: 'Align To Ground Normal' を ON（地面の傾斜に垂直）、'Add Shade System' を OFF、'Remove Colliders' を ON に設定。",
+                "・「草」を生やす場合: 'Tree Proximity' または 'Perlin Noise'。'Align To Ground Normal' を ON、'Add Shade System' を OFF、'Remove Colliders' を ON。\n" +
+                "・「石・岩」を生やす場合: 'Tree Proximity'（木の根元集中）。'Align To Ground Normal' を ON、'Ground Sink Ratio' を 0.3〜0.4（地面に埋める）、'Spawn Child Satellites' を ON（大小の親子ペア）、'Remove Colliders' を OFF（遮蔽物化）。",
                 MessageType.Info
             );
         }

@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>開発進捗レポート - 2026/09/26 | Dracul-S.drei</title>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-light: #eff6ff;
+            --success: #16a34a;
+            --success-light: #f0fdf4;
+            --warning: #d97706;
+            --warning-light: #fffbeb;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --bg-body: #f8fafc;
+            --bg-card: #ffffff;
+            --border: #e2e8f0;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: var(--bg-body);
+            color: var(--text-main);
+            line-height: 1.6;
+            padding: 30px 20px;
+        }
+
+        .container {
+            max-width: 960px;
+            margin: 0 auto;
+        }
+
+        header {
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            color: white;
+            padding: 36px 32px;
+            border-radius: 16px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+            margin-bottom: 28px;
+        }
+
+        header h1 {
+            font-size: 26px;
+            font-weight: 700;
+            margin-bottom: 8px;
+            letter-spacing: -0.5px;
+        }
+
+        header p {
+            color: #94a3b8;
+            font-size: 15px;
+        }
+
+        .card {
+            background: var(--bg-card);
+            border-radius: 14px;
+            border: 1px solid var(--border);
+            padding: 28px;
+            margin-bottom: 24px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+        }
+
+        .card-title {
+            font-size: 19px;
+            font-weight: 700;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: #0f172a;
+            border-bottom: 2px solid #f1f5f9;
+            padding-bottom: 10px;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 10px;
+            font-size: 12px;
+            font-weight: 600;
+            border-radius: 6px;
+        }
+        .badge-success { background: var(--success-light); color: var(--success); }
+        .badge-primary { background: var(--primary-light); color: var(--primary); }
+
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 16px;
+            margin-top: 14px;
+        }
+
+        .feature-item {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 16px;
+        }
+
+        .feature-item h4 {
+            font-size: 15px;
+            color: #1e293b;
+            margin-bottom: 6px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .feature-item p {
+            font-size: 13.5px;
+            color: var(--text-muted);
+            line-height: 1.5;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 12px;
+            font-size: 14px;
+        }
+
+        th, td {
+            padding: 12px 14px;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+
+        th {
+            background-color: #f8fafc;
+            font-weight: 600;
+            color: #475569;
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        .code-pill {
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+            background: #f1f5f9;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 12.5px;
+            color: #0f172a;
+        }
+
+        ul {
+            padding-left: 20px;
+            color: #334155;
+            font-size: 14px;
+        }
+
+        li {
+            margin-bottom: 8px;
+        }
+
+        footer {
+            text-align: center;
+            font-size: 13px;
+            color: var(--text-muted);
+            margin-top: 36px;
+            padding-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🌿 環境プロシージャル配置システム 改善レポート</h1>
+            <p>プロジェクト: Dracul-S.drei | 日付: 2026年9月26日 | 担当: Antigravity</p>
+        </header>
+
+        <!-- サマリー -->
+        <div class="card">
+            <h2 class="card-title">📌 本日の作業サマリー</h2>
+            <p>木が中央密集（ガウス分布）している環境において、草や石が均一に散らばるCG特有の不自然さを解消し、生態系と地質学に基づいた**「自然な偏りのあるプロシージャル配置システム」**を構築しました。</p>
+        </div>
+
+        <!-- 実施項目1 -->
+        <div class="card">
+            <h2 class="card-title">🌱 1. 草の配置における生態系連動アルゴリズムの実装</h2>
+            <p>木の位置を自動探索・参照し、木の根元や木陰ゾーンに草を偏らせる新しいサンプリングモードを実装しました。</p>
+            <div class="feature-grid">
+                <div class="feature-item">
+                    <h4>🌲 Tree Proximity (木の根元・下草)</h4>
+                    <p>木陰や湿気を好む下草。幹の周りにギュッと密集し、外側に向かって減衰する自然林の林床を再現。</p>
+                </div>
+                <div class="feature-item">
+                    <h4>☀️ Tree Ring (木漏れ日ゾーン)</h4>
+                    <p>直射日光と雨が遮られる幹直下を避け、葉の縁から外側の木漏れ日ゾーンにリング状に群生。</p>
+                </div>
+                <div class="feature-item">
+                    <h4>🌾 Tree Avoidance (開けた平地)</h4>
+                    <p>日光を好む草。木々が生えている場所を避け、木のない開けた広場や外周草原に偏りを作ります。</p>
+                </div>
+                <div class="feature-item">
+                    <h4>🚫 Prevent Trunk Overlap</h4>
+                    <p>どのモードを選んでいても、草のメッシュが木の幹のど真ん中に突き刺さる現象を完全に防止。</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- 実施項目2 -->
+        <div class="card">
+            <h2 class="card-title">⚡ 2. Undoスタックオーバーフローの解消 & パフォーマンス大幅改善</h2>
+            <ul>
+                <li><strong>原因の特定:</strong> 草 10,000 本などの大量生成時に、1本1本個別に <span class="code-pill">Undo.RegisterCreatedObjectUndo</span> を呼び出していたため、エディタのUndo履歴バッファが溢れ、フリーズとオーバーフロー警告が発生。</li>
+                <li><strong>対策と成果:</strong> 生成された親コンテナ単位で一括Undo管理（<span class="code-pill">Undo.CollapseUndoOperations</span>）に変更。オーバーフローを解消し、<strong>10,000本の生成速度が劇的に高速化</strong>。さらに <span class="code-pill">Ctrl+Z</span> 1回で綺麗に直前の状態へ戻せるようになりました。</li>
+            </ul>
+        </div>
+
+        <!-- 実施項目3 -->
+        <div class="card">
+            <h2 class="card-title">🪨 3. 石・岩の自然な配置システム & 3大テクニックの実装</h2>
+            <p>石の配置において、自然界のリアリティとゲーム美術の重要テクニックを実装しました。</p>
+            <div class="feature-grid">
+                <div class="feature-item">
+                    <h4>📍 木の根元への配置 (1.③)</h4>
+                    <p>木の根が土を持ち上げて地中の岩が露出した状態を再現。木＋草＋石がセットになり、1つの「情景」を形成。</p>
+                </div>
+                <div class="feature-item">
+                    <h4>👨‍👦 大小の親子ペア配置 (2.①)</h4>
+                    <p>大きな親岩が置かれた際、その足元に小さな子石を自動で1〜2個添える「Satellite Spawn」機能を実装。</p>
+                </div>
+                <div class="feature-item">
+                    <h4>⚓ 地面への自動埋め込み (2.②)</h4>
+                    <p><span class="code-pill">groundSinkRatio</span> を新設。石のスケールに応じて 30%〜40% 地面に沈み込ませ、浮遊感をなくし強烈な接地感を獲得。</p>
+                </div>
+                <div class="feature-item">
+                    <h4>📐 傾斜への角度合わせ (2.③)</h4>
+                    <p>地面の法線に合わせて岩を傾け、斜面でも滑り落ちずに地面に埋まっているリアルな質感を表現。</p>
+                </div>
+            </div>
+
+            <div style="margin-top: 18px;">
+                <p><strong>🛠️ 岩プレハブ自動生成ツール (<span class="code-pill">RockPrefabGenerator</span>) の新設</strong></p>
+                <p style="font-size: 13.5px; color: var(--text-muted); margin-top: 4px;">Unityメニューからワンクリックで、ゴツゴツとしたローポリ岩（3種: 大岩・平岩・角岩）のメッシュ、URPマテリアル、Convexコライダーを完全自動生成するエディタ拡張を追加しました。</p>
+            </div>
+        </div>
+
+        <!-- 変更ファイル一覧 -->
+        <div class="card">
+            <h2 class="card-title">📁 変更・追加ファイル一覧</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>ファイルパス</th>
+                        <th>状態</th>
+                        <th>変更内容</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><span class="code-pill">Assets/Scripts/Environment/ProceduralTreeSpawner.cs</span></td>
+                        <td><span class="badge badge-primary">Modified</span></td>
+                        <td>木連動モード、幹重なり防止、親子ペア配置、地面埋め込み率、Undo最適化</td>
+                    </tr>
+                    <tr>
+                        <td><span class="code-pill">Assets/Scripts/Environment/Editor/ProceduralTreeSpawnerEditor.cs</span></td>
+                        <td><span class="badge badge-primary">Modified</span></td>
+                        <td>岩プレハブ生成ボタンの追加、インスペクター設定ガイドの更新</td>
+                    </tr>
+                    <tr>
+                        <td><span class="code-pill">Assets/Scripts/Environment/Editor/RockPrefabGenerator.cs</span></td>
+                        <td><span class="badge badge-success">New</span></td>
+                        <td>ローポリ岩メッシュ＆URPプレハブの自動生成エディタツール</td>
+                    </tr>
+                    <tr>
+                        <td><span class="code-pill">Assets/Scenes/SampleScene.unity</span></td>
+                        <td><span class="badge badge-primary">Modified</span></td>
+                        <td>シーン内設定の更新</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <footer>
+            &copy; 2026 Dracul-S.drei Development Project. All rights reserved.
+        </footer>
+    </div>
+</body>
+</html>
