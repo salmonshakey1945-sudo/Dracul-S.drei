@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>開発作業レポート - 2026/10/24 (Medieval Village URP対応 & 廃墟瓦礫プロシージャルシステム統合)</title>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
+            --text-main: #f8fafc;
+            --text-sub: #94a3b8;
+            --accent: #38bdf8;
+            --accent-green: #4ade80;
+            --accent-purple: #c084fc;
+            --accent-orange: #fb923c;
+            --accent-red: #f87171;
+            --border: #334155;
+            --code-bg: #0b1120;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            padding: 40px 20px;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 960px;
+            margin: 0 auto;
+        }
+
+        header {
+            margin-bottom: 40px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        h1 {
+            font-size: 2.1rem;
+            margin: 0 0 12px 0;
+            color: #ffffff;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .date-badge {
+            display: inline-block;
+            background-color: #0369a1;
+            color: #e0f2fe;
+            padding: 4px 14px;
+            border-radius: 9999px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        .card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 24px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+
+        h2 {
+            font-size: 1.35rem;
+            margin-top: 0;
+            margin-bottom: 16px;
+            color: var(--accent);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            border-bottom: 1px dashed var(--border);
+            padding-bottom: 8px;
+        }
+
+        h3 {
+            font-size: 1.1rem;
+            margin: 16px 0 8px 0;
+            color: #e2e8f0;
+        }
+
+        p, ul, ol {
+            color: var(--text-sub);
+            margin: 0 0 12px 0;
+        }
+
+        strong {
+            color: var(--text-main);
+        }
+
+        ul, ol {
+            padding-left: 20px;
+        }
+
+        li {
+            margin-bottom: 6px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 16px 0;
+            font-size: 0.92rem;
+        }
+
+        th, td {
+            border: 1px solid var(--border);
+            padding: 10px 14px;
+            text-align: left;
+        }
+
+        th {
+            background-color: rgba(51, 65, 85, 0.5);
+            color: var(--text-main);
+            font-weight: 600;
+        }
+
+        td {
+            color: var(--text-sub);
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.78rem;
+            font-weight: 600;
+            margin-right: 4px;
+        }
+
+        .badge-green { background-color: rgba(74, 222, 128, 0.2); color: var(--accent-green); border: 1px solid rgba(74, 222, 128, 0.4); }
+        .badge-orange { background-color: rgba(251, 146, 60, 0.2); color: var(--accent-orange); border: 1px solid rgba(251, 146, 60, 0.4); }
+        .badge-purple { background-color: rgba(192, 132, 252, 0.2); color: var(--accent-purple); border: 1px solid rgba(192, 132, 252, 0.4); }
+        .badge-blue { background-color: rgba(56, 189, 248, 0.2); color: var(--accent); border: 1px solid rgba(56, 189, 248, 0.4); }
+
+        pre, code {
+            font-family: Consolas, Monaco, "Courier New", monospace;
+            background-color: var(--code-bg);
+            border-radius: 6px;
+        }
+
+        code {
+            padding: 2px 6px;
+            font-size: 0.88rem;
+            color: #38bdf8;
+            border: 1px solid rgba(56, 189, 248, 0.2);
+        }
+
+        pre {
+            padding: 14px;
+            overflow-x: auto;
+            border: 1px solid var(--border);
+            color: #cbd5e1;
+            font-size: 0.88rem;
+            line-height: 1.5;
+        }
+
+        .callout {
+            border-left: 4px solid var(--accent);
+            background-color: rgba(56, 189, 248, 0.08);
+            padding: 12px 16px;
+            border-radius: 0 8px 8px 0;
+            margin: 16px 0;
+        }
+
+        .callout-green {
+            border-left-color: var(--accent-green);
+            background-color: rgba(74, 222, 128, 0.08);
+        }
+
+        .callout-orange {
+            border-left-color: var(--accent-orange);
+            background-color: rgba(251, 146, 60, 0.08);
+        }
+
+        footer {
+            text-align: center;
+            margin-top: 50px;
+            padding-top: 20px;
+            border-top: 1px solid var(--border);
+            color: #64748b;
+            font-size: 0.85rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <span class="date-badge">2026/10/24 実績</span>
+            <h1>Dracul: S.drei 開発作業レポート</h1>
+            <p>Medieval Village Building Pack の URP テクスチャ完全修復、建物のプレハブ移行、およびプロシージャル瓦礫・木片散布システムの単一プログラム統合拡張</p>
+        </header>
+
+        <!-- セクション 1: MCP環境調査 -->
+        <div class="card">
+            <h2><span class="badge badge-blue">調査</span> 1. UnityのMCP操作環境の確認</h2>
+            <p>AIアシスタントからUnityをMCP（Model Context Protocol）経由で操作するための前提条件および現在のプロジェクト環境を調査しました。</p>
+            <table>
+                <tr>
+                    <th>確認項目</th>
+                    <th>現在の状態</th>
+                    <th>詳細</th>
+                </tr>
+                <tr>
+                    <td><strong>Unity Editor</strong></td>
+                    <td><span class="badge badge-green">稼働中</span></td>
+                    <td>Unity 6 (<code>6000.2.13f1</code>) が起動中であることを確認</td>
+                </tr>
+                <tr>
+                    <td><strong>Antigravity MCP設定</strong></td>
+                    <td><span class="badge badge-orange">未設定</span></td>
+                    <td><code>~/.gemini/config/mcp_config.json</code> が存在（0バイト）</td>
+                </tr>
+                <tr>
+                    <td><strong>ランタイム環境</strong></td>
+                    <td><span class="badge badge-purple">確認済</span></td>
+                    <td><code>.NET 9.0</code> / <code>Git</code> は利用可能、<code>Node.js</code> / <code>Python</code> は未検出</td>
+                </tr>
+                <tr>
+                    <td><strong>Unity側ブリッジ</strong></td>
+                    <td><span class="badge badge-orange">未導入</span></td>
+                    <td>Editor拡張スクリプト（ローカルHTTPサーバー）による操作基盤の設計・案内を実施</td>
+                </tr>
+            </table>
+        </div>
+
+        <!-- セクション 2: テクスチャ剥がれ修復 -->
+        <div class="card">
+            <h2><span class="badge badge-green">修復</span> 2. Medieval Village Building Pack のテクスチャ剥がれ修復</h2>
+            <p>インポートした <code>Medieval Village Building Pack</code> のマテリアルがピンク色／テクスチャ非表示になっていた原因を解明し、一括自動変換エディタツールを作成・解決しました。</p>
+
+            <div class="callout callout-orange">
+                <strong>原因の特定:</strong>
+                パック内の全15個のマテリアルが、旧ビルトインパイプライン向けの Shader Forge カスタムシェーダー（<code>Mikes Emporium/RMHA</code> 等）を使用していたため、Unity 6 の <strong>URP (Universal Render Pipeline)</strong> 環境でレンダリングエラー（Missing Shader）になっていました。テクスチャのGUID紐付け自体は無事保持されていました。
+            </div>
+
+            <h3>実装ツール: <code>Assets/Editor/FixMedievalVillageMaterials.cs</code></h3>
+            <ul>
+                <li>全15マテリアルのシェーダーを <code>Universal Render Pipeline/Lit</code> に一括自動変換。</li>
+                <li>既存の <code>_MainTex</code> を URP の <code>_BaseMap</code> に自動リマップし、<code>_BumpMap</code>（法線マップ）と <code>_NORMALMAP</code> キーワードを有効化。</li>
+                <li>窓ガラス (<code>Windows.mat</code>) は <strong>Surface Type = Transparent</strong>（透過・反射）に最適化。</li>
+                <li>わら屋根 (<code>StrawRoofTransparent.mat</code>) は <strong>Alpha Cutout (0.35)</strong> に設定し、リアルな端の切り抜きを再現。</li>
+                <li>木材・石材・金属材のスムースネス／メタリックを自然な質感に最適設定。</li>
+            </ul>
+        </div>
+
+        <!-- セクション 3: サンプルハウス移行 -->
+        <div class="card">
+            <h2><span class="badge badge-purple">運用</span> 3. サンプルハウスのメインシーンへの移行</h2>
+            <p>サンプルシーン（<code>Preview_Scene.unity</code>）内に組み立て済みで配置されている <code>SampleHouse</code> を、メインシーンで再利用・複数配置するためのベストプラクティスを策定しました。</p>
+            <ul>
+                <li><strong>プレハブ化（Prefab）の実施:</strong> <code>SampleHouse</code> を Project ウィンドウ（<code>Assets/Prefabs/</code>）へドラッグ＆ドロップしてプレハブ化し、シーン間で自由に再利用可能に。</li>
+                <li><strong>廃墟化（部分破壊）のワークフロー:</strong> 配置後に <em>Prefab > Unpack</em> を行い、屋根や壁の一部を手動で削除・斜めに傾けて「倒壊・破壊」を表現する手法を確立。</li>
+            </ul>
+        </div>
+
+        <!-- セクション 4: 瓦礫プロシージャルシステム統合 -->
+        <div class="card">
+            <h2><span class="badge badge-orange">機能拡張</span> 4. 廃墟瓦礫プロシージャルシステムの開発（単一スクリプト統合）</h2>
+            <p>「プログラムを増やさず、既存の木・草・岩のプロシージャルスクリプトを1つに統合して拡張したい」「木片多め・瓦礫少なめの比率で散らしたい」という要望に基づき、<strong><code>ProceduralTreeSpawner.cs</code> を直接拡張・統合</strong>しました。</p>
+
+            <h3>主要な新機能と設計</h3>
+            <table>
+                <tr>
+                    <th style="width: 25%;">機能</th>
+                    <th style="width: 35%;">設定項目</th>
+                    <th>詳細・効果</th>
+                </tr>
+                <tr>
+                    <td><strong>比率別プレハブ選択<br>(木多め・瓦礫少なめ)</strong></td>
+                    <td>
+                        <code>useRatioCategories = true</code><br>
+                        <code>woodPrefabs</code> (木の板・梁)<br>
+                        <code>rubblePrefabs</code> (レンガ・石)<br>
+                        <code>woodRatio = 0.8</code>
+                    </td>
+                    <td>木材プレハブと瓦礫プレハブを分離管理。スライダー1本で「木80% : 瓦礫20%」など直感的なバランス調整が可能。</td>
+                </tr>
+                <tr>
+                    <td><strong>建物連動分布モード</strong></td>
+                    <td>
+                        <code>DistributionMode.BuildingProximity</code><br>
+                        <code>buildingTarget</code> (対象の家)<br>
+                        <code>buildingInnerRadius</code> (外壁境界)<br>
+                        <code>buildingOuterRadius</code> (広がり限界)
+                    </td>
+                    <td>建物の中心や壁際を基準に、建物の外側足元に向かって瓦礫・木片を集中散布（指数減衰による自然な広がり）。</td>
+                </tr>
+                <tr>
+                    <td><strong>不規則な転がり・傾き</strong></td>
+                    <td><code>randomTumbleAngle = 20°</code></td>
+                    <td>地面法線に沿わせつつ、破片が地面の凹凸に引っかかって斜めに転がっているリアルな散乱角を付与。</td>
+                </tr>
+                <tr>
+                    <td><strong>ワンクリックプリセット</strong></td>
+                    <td><code>Setup Medieval Debris Preset</code> ボタン</td>
+                    <td>Inspector下部にボタンを新設。Medieval Village Pack の木材パーツ群・レンガパーツ群を自動登録し、木80%:瓦礫20%の最適パラメータを一発セット。</td>
+                </tr>
+            </table>
+        </div>
+
+        <!-- セクション 5: トラブルシューティング -->
+        <div class="card">
+            <h2><span class="badge badge-red">改善</span> 5. 課題解決とトラブルシューティング</h2>
+
+            <h3>① CS1022 コンパイルエラーの即時解消</h3>
+            <p><code>ProceduralTreeSpawnerEditor.cs(146,1): error CS1022</code> が発生し、Inspector 上のカスタムUIが非表示になっていた問題を、末尾の余分な閉じブレース <code>}</code> の削除により即座に正常化しました。</p>
+
+            <h3>② 建物（屋根）の上に乗ってしまう問題の完全防御</h3>
+            <div class="callout callout-green">
+                <strong>原因と二重防御の実装:</strong><br>
+                上空から下向きに地面を探す Raycast が、建物の屋根や壁コライダーに当たって「地面」と誤認していたため、以下の2段階フィルターを実装しました：
+                <ol>
+                    <li><strong>コライダー除外:</strong> <code>buildingTarget</code> およびその子パーツのコライダーは地面判定から完全に除外（屋根の上に乗ることを物理的に防止）。</li>
+                    <li><strong>屋根下・屋内遮断 (<code>preventBuildingRoofSpawn: ON</code>):</strong> Raycast が建物を貫通した地点（＝屋根の下・屋内）への配置もスキップし、<strong>「建物の外側で空が見えている周囲の地面」だけに限定配置</strong>するよう改良。</li>
+                </ol>
+            </div>
+
+            <h3>③ 範囲調整パラメータの上書き防止 & コンパクト化</h3>
+            <p>プリセットボタンを押すたびに手動変更した <code>Spawn Area Size</code> がリセットされる挙動を解消。変更済みのユーザー設定値を維持するよう保護処理を入れ、初期デフォルト範囲も外壁際（約2〜3m以内）のコンパクトサイズ（<code>16m × 16m</code>、<code>Outer Radius: 7.0m</code>）に引き締めました。</p>
+        </div>
+
+        <!-- セクション 6: 次回作業への引き継ぎ -->
+        <div class="card">
+            <h2><span class="badge badge-purple">Next</span> 6. 今後の推奨ステップ・引き継ぎ事項</h2>
+            <ul>
+                <li><strong>瓦礫範囲の微調整:</strong>
+                    <ul>
+                        <li><code>Building Inner Radius</code>: <code>3.5 〜 4.0</code>（外壁のすぐ外側）</li>
+                        <li><code>Building Outer Radius</code>: <code>6.0 〜 7.0</code>（壁際から1〜3m程度までの狭い範囲に限定）</li>
+                        <li><code>Tree Count</code>: <code>15 〜 25</code> 個程度で高密度な瓦礫の山を形成可能</li>
+                        <li>※設定後はプリセットボタンではなく、緑色の <strong><code>Generate (生成・配置)</code></strong> ボタンを押して再配置。</li>
+                    </ul>
+                </li>
+                <li><strong>複数棟の廃墟村の構築:</strong>
+                    <ul>
+                        <li><code>SampleHouse</code> を複製し、それぞれ異なるパーツを手動で外して個性的な廃墟を作成。</li>
+                        <li>各建物ごとに <code>Building Target</code> を指定した Spawner を配置、または広域エリアで一括配置。</li>
+                    </ul>
+                </li>
+                <li><strong>MCP によるUnity直接操作環境の構築（必要時）:</strong>
+                    <ul>
+                        <li>AIが直接 GameObject の配置やパラメータ変更を行える Unity MCP Bridge の導入。</li>
+                    </ul>
+                </li>
+            </ul>
+        </div>
+
+        <footer>
+            <p>Project: Dracul: S.drei | Generated on 2026-10-24 | Engine: Unity 6 (6000.2.13f1 URP)</p>
+        </footer>
+    </div>
+</body>
+</html>

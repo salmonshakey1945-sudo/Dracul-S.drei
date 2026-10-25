@@ -29,7 +29,9 @@ namespace Dracul.Environment
             [InspectorName("Tree Ring (幹を避け樹冠のフチ・木漏れ日ゾーンに群生)")]
             TreeRing,
             [InspectorName("Tree Avoidance (木を避けて開けた平地に密集)")]
-            TreeAvoidance
+            TreeAvoidance,
+            [InspectorName("Building Proximity (建物の周囲・足元に密集/廃墟瓦礫用)")]
+            BuildingProximity
         }
 
         public enum ShadeColliderShape
@@ -39,9 +41,23 @@ namespace Dracul.Environment
             MeshConvex
         }
 
-        [Header("Object Prefabs")]
-        [Tooltip("配置するオブジェクト（木や草・低木など）のプレハブ一覧")]
+        [Header("Object Prefabs (単一プレハブリスト)")]
+        [Tooltip("配置するオブジェクト（木や草・低木など）のプレハブ一覧。\n※比率別（木多め・瓦礫少なめ）を使用する場合は下の「Prefab Selection & Ratio」を有効にしてください")]
         public GameObject[] treePrefabs;
+
+        [Header("Prefab Selection & Ratio (カテゴリ別比率設定)")]
+        [Tooltip("木材多め・瓦礫少なめなどの比率別プレハブ選択を使用するか")]
+        public bool useRatioCategories = false;
+
+        [Tooltip("木材・木の破片プレハブ一覧（Wood_Plank, Wood_Support, Wood_Joist など）")]
+        public GameObject[] woodPrefabs;
+
+        [Tooltip("石・レンガ・瓦礫プレハブ一覧（Brick_Row, Brick_Corner, 石など）")]
+        public GameObject[] rubblePrefabs;
+
+        [Tooltip("木材プレハブが選ばれる比率（0.8 = 木材 80% / 瓦礫 20%）")]
+        [Range(0f, 1f)]
+        public float woodRatio = 0.8f;
 
         [Header("Spawn Settings")]
         [Tooltip("配置するオブジェクトの目標数")]
@@ -107,8 +123,31 @@ namespace Dracul.Environment
         [Tooltip("どの分布モード（UniformやPerlinNoise含む）でも、木の幹(treeInnerRadius)へのめり込み配置を防止するか")]
         public bool preventTrunkOverlap = true;
 
+        [Header("Building Relation Settings (建物連動・廃墟瓦礫設定)")]
+        [Tooltip("瓦礫を散らす基準となる建物（親オブジェクトやパーツ群）。未設定時はシーン内のSampleHouse等を自動探索します")]
+        public Transform buildingTarget;
+
+        [Tooltip("建物の真上（屋根など）や屋内への配置を防止するか。\nONにすると屋根や建物のコライダーへの接地を防ぎ、建物の外周・周囲の地面だけに瓦礫を配置します")]
+        public bool preventBuildingRoofSpawn = true;
+
+        [Tooltip("建物周辺に集中させる瓦礫の割合（0.9なら90%が建物の周囲、10%が広範囲にまばらに散乱）")]
+        [Range(0f, 1f)]
+        public float buildingProximityFocus = 0.95f;
+
+        [Tooltip("建物の中心・内側からの最小配置半径（建物の外壁より外側から配置するための距離）")]
+        [Range(0f, 20f)]
+        public float buildingInnerRadius = 4.5f;
+
+        [Tooltip("瓦礫の広がり最大半径（建物の外側どこまで瓦礫を飛び散らせるか）")]
+        [Range(1f, 50f)]
+        public float buildingOuterRadius = 12.0f;
+
+        [Tooltip("建物周辺での密度の減衰度合い（1.0 = 均等, 2.0 = 壁に近いほど高密度, 0.5 = 外側ほど高密度）")]
+        [Range(0.2f, 3.0f)]
+        public float buildingFalloff = 1.8f;
+
         [Header("Scale & Rotation")]
-        [Tooltip("基本スケール（木: 0.5, 草: 1.0 など）")]
+        [Tooltip("基本スケール（木: 0.5, 草: 1.0, 瓦礫: 0.8〜1.0 など）")]
         public Vector3 baseScale = new Vector3(0.5f, 0.5f, 0.5f);
 
         [Tooltip("スケールのランダムな揺らぎ幅（0で固定、0.1なら ±0.05 の範囲でランダム）")]
@@ -117,6 +156,10 @@ namespace Dracul.Environment
 
         [Tooltip("Y軸（向き）をランダムに回転させるか")]
         public bool randomYRotation = true;
+
+        [Tooltip("地面の上で不規則に転がったり引っかかったような傾き角（度）。\n木や草は0、瓦礫・木片は15〜30度にするとリアルな散乱感になります")]
+        [Range(0f, 60f)]
+        public float randomTumbleAngle = 0f;
 
         [Header("Alignment to Ground (地面への角度合わせ)")]
         [Tooltip("地面の傾斜（法線）に対して垂直に生やすか。\n・草や岩の場合: チェックON（地面に垂直に生える）\n・木の場合: チェックOFF（重力に逆らって常に真上に向かって生える）")]
@@ -217,6 +260,10 @@ namespace Dracul.Environment
         // 木との連動用の一時キャッシュ
         private List<Vector3> _cachedTreePositions = new List<Vector3>();
 
+        // 建物との連動用の一時キャッシュ
+        private List<Vector3> _cachedBuildingPositions = new List<Vector3>();
+        private List<Transform> _cachedBuildingTargets = new List<Transform>();
+
         private void Start()
         {
             if (Application.isPlaying && spawnOnStart)
@@ -231,10 +278,23 @@ namespace Dracul.Environment
         [ContextMenu("Generate Objects")]
         public void GenerateTrees()
         {
-            if (treePrefabs == null || treePrefabs.Length == 0)
+            if (useRatioCategories)
             {
-                Debug.LogWarning("[ProceduralTreeSpawner] Prefabs が設定されていません。", this);
-                return;
+                bool hasWood = woodPrefabs != null && woodPrefabs.Length > 0;
+                bool hasRubble = rubblePrefabs != null && rubblePrefabs.Length > 0;
+                if (!hasWood && !hasRubble)
+                {
+                    Debug.LogWarning("[ProceduralTreeSpawner] 比率モードが有効ですが、Wood Prefabs も Rubble Prefabs も設定されていません。", this);
+                    return;
+                }
+            }
+            else
+            {
+                if (treePrefabs == null || treePrefabs.Length == 0)
+                {
+                    Debug.LogWarning("[ProceduralTreeSpawner] Prefabs が設定されていません。", this);
+                    return;
+                }
             }
 
 #if UNITY_EDITOR
@@ -263,6 +323,7 @@ namespace Dracul.Environment
             // モードに応じた事前準備
             SetupClusterCenters();
             CollectTreePositions();
+            CollectBuildingPositions();
 
             // 既存のコンテナをクリア
             ClearTrees();
@@ -296,6 +357,7 @@ namespace Dracul.Environment
                         // 距離順にソート（最も上にあるコライダーから順にチェック）
                         System.Array.Sort(hits, (a, b) => a.distance.CompareTo(b.distance));
 
+                        bool hitBuilding = false;
                         RaycastHit? validHit = null;
                         for (int h = 0; h < hits.Length; h++)
                         {
@@ -307,11 +369,43 @@ namespace Dracul.Environment
                                 continue;
                             }
 
+                            // 建物本体やその子パーツ（屋根・壁・梁など）に当たったか判定
+                            bool isBuilding = false;
+                            if (buildingTarget != null && (hit.transform == buildingTarget || hit.transform.IsChildOf(buildingTarget)))
+                            {
+                                isBuilding = true;
+                            }
+                            else if (_cachedBuildingTargets != null)
+                            {
+                                for (int b = 0; b < _cachedBuildingTargets.Count; b++)
+                                {
+                                    Transform bt = _cachedBuildingTargets[b];
+                                    if (bt != null && (hit.transform == bt || hit.transform.IsChildOf(bt)))
+                                    {
+                                        isBuilding = true;
+                                        break;
+                                    }
+                                }
+                            }
+
+                            if (isBuilding)
+                            {
+                                hitBuilding = true;
+                                // 建物の屋根や壁・床は地面ではないのでスキップ（屋根の上に乗るのを防止）
+                                continue;
+                            }
+
+                            // 屋根・屋内配置防止が有効で、建物の真下（屋内）に当たる場合は配置除外
+                            if (preventBuildingRoofSpawn && hitBuilding)
+                            {
+                                break;
+                            }
+
                             validHit = hit;
                             break;
                         }
 
-                        if (!validHit.HasValue) continue;
+                        if (!validHit.HasValue || (preventBuildingRoofSpawn && hitBuilding)) continue;
 
                         RaycastHit groundHit = validHit.Value;
 
@@ -532,6 +626,30 @@ namespace Dracul.Environment
                     return new Vector2(center.x + Random.Range(-halfWidth, halfWidth), center.z + Random.Range(-halfDepth, halfDepth));
                 }
 
+                case DistributionMode.BuildingProximity:
+                {
+                    // 建物周辺（壁の足元・廃墟周囲）に集中配置
+                    if (_cachedBuildingPositions.Count > 0 && Random.value <= buildingProximityFocus)
+                    {
+                        int bIdx = Random.Range(0, _cachedBuildingPositions.Count);
+                        Vector3 bPos = _cachedBuildingPositions[bIdx];
+
+                        float angle = Random.Range(0f, Mathf.PI * 2f);
+                        // buildingFalloff: 1.0=均等, >1.0=壁際に近いほど密集
+                        float t = Mathf.Pow(Random.value, buildingFalloff);
+                        float dist = Mathf.Lerp(buildingInnerRadius, buildingOuterRadius, t);
+
+                        float candX = Mathf.Clamp(bPos.x + Mathf.Cos(angle) * dist, center.x - halfWidth, center.x + halfWidth);
+                        float candZ = Mathf.Clamp(bPos.z + Mathf.Sin(angle) * dist, center.z - halfDepth, center.z + halfDepth);
+                        return new Vector2(candX, candZ);
+                    }
+                    else
+                    {
+                        // 周辺への散乱分
+                        return new Vector2(center.x + Random.Range(-halfWidth, halfWidth), center.z + Random.Range(-halfDepth, halfDepth));
+                    }
+                }
+
                 default: // Uniform
                     return new Vector2(center.x + Random.Range(-halfWidth, halfWidth), center.z + Random.Range(-halfDepth, halfDepth));
             }
@@ -619,20 +737,99 @@ namespace Dracul.Environment
         }
 
         /// <summary>
+        /// 参照する建物の位置を収集・キャッシュ
+        /// </summary>
+        private void CollectBuildingPositions()
+        {
+            _cachedBuildingPositions.Clear();
+            _cachedBuildingTargets.Clear();
+
+            // 指定された建物があれば登録
+            if (buildingTarget != null)
+            {
+                _cachedBuildingTargets.Add(buildingTarget);
+                _cachedBuildingPositions.Add(buildingTarget.position);
+            }
+
+            // シーン内の他の SampleHouse や House, Building も探索して衝突除外リストに追加
+            string[] searchNames = new[] { "SampleHouse", "SampleHouse (1)", "House", "Building" };
+            foreach (var sName in searchNames)
+            {
+                GameObject[] foundObjs = GameObject.FindObjectsByType<GameObject>(FindObjectsSortMode.None);
+                foreach (var obj in foundObjs)
+                {
+                    if (obj.name.StartsWith(sName) && !_cachedBuildingTargets.Contains(obj.transform))
+                    {
+                        _cachedBuildingTargets.Add(obj.transform);
+                        if (_cachedBuildingPositions.Count == 0)
+                        {
+                            _cachedBuildingPositions.Add(obj.transform.position);
+                        }
+                    }
+                }
+            }
+
+            if (_cachedBuildingPositions.Count == 0 && distributionMode == DistributionMode.BuildingProximity)
+            {
+                Debug.LogWarning("[ProceduralTreeSpawner] 建物オブジェクトが見つかりませんでした。インスペクターの 'Building Target' に対象の建物を指定してください。", this);
+            }
+        }
+
+        /// <summary>
+        /// プレハブを選択（比率モード使用時は woodRatio に応じて木材/瓦礫を抽選）
+        /// </summary>
+        private GameObject SelectPrefab()
+        {
+            if (useRatioCategories)
+            {
+                bool hasWood = woodPrefabs != null && woodPrefabs.Length > 0;
+                bool hasRubble = rubblePrefabs != null && rubblePrefabs.Length > 0;
+
+                if (hasWood && hasRubble)
+                {
+                    // woodRatio に従って抽選（例: 0.8なら80%の確率で木材、20%で瓦礫）
+                    if (Random.value <= woodRatio)
+                    {
+                        return woodPrefabs[Random.Range(0, woodPrefabs.Length)];
+                    }
+                    else
+                    {
+                        return rubblePrefabs[Random.Range(0, rubblePrefabs.Length)];
+                    }
+                }
+                else if (hasWood)
+                {
+                    return woodPrefabs[Random.Range(0, woodPrefabs.Length)];
+                }
+                else if (hasRubble)
+                {
+                    return rubblePrefabs[Random.Range(0, rubblePrefabs.Length)];
+                }
+            }
+
+            // 通常モード（従来の単一リスト）
+            if (treePrefabs != null && treePrefabs.Length > 0)
+            {
+                return treePrefabs[Random.Range(0, treePrefabs.Length)];
+            }
+
+            return null;
+        }
+
+        /// <summary>
         /// 1つのオブジェクトをインスタンス化して配置
         /// </summary>
         private GameObject SpawnSingleTree(Vector3 position, Vector3 normal, Transform parent, float scaleMultiplier = 1.0f)
         {
-            // ランダムにプレハブを選択
-            int prefabIndex = Random.Range(0, treePrefabs.Length);
-            GameObject selectedPrefab = treePrefabs[prefabIndex];
+            // プレハブを選択
+            GameObject selectedPrefab = SelectPrefab();
             if (selectedPrefab == null) return null;
 
             // 回転の決定
             Quaternion rotation;
             if (alignToGroundNormal)
             {
-                // 地面法線に合わせて傾ける（草など）
+                // 地面法線に合わせて傾ける（草・瓦礫など）
                 Vector3 targetUp = Vector3.Slerp(Vector3.up, normal, normalAlignmentStrength);
                 Quaternion normalRotation = Quaternion.FromToRotation(Vector3.up, targetUp);
 
@@ -651,6 +848,14 @@ namespace Dracul.Environment
                 // 常にワールド真上向き（木など）
                 float yAngle = randomYRotation ? Random.Range(0f, 360f) : 0f;
                 rotation = Quaternion.Euler(0f, yAngle, 0f);
+            }
+
+            // 瓦礫・破片のランダムな転がり・傾き（Tumble）
+            if (randomTumbleAngle > 0f)
+            {
+                float tumbleX = Random.Range(-randomTumbleAngle, randomTumbleAngle);
+                float tumbleZ = Random.Range(-randomTumbleAngle, randomTumbleAngle);
+                rotation = rotation * Quaternion.Euler(tumbleX, 0f, tumbleZ);
             }
 
             // インスタンス化（エディタ時はプレハブリンクを維持）
@@ -729,6 +934,7 @@ namespace Dracul.Environment
                 if (hits != null && hits.Length > 0)
                 {
                     System.Array.Sort(hits, (a, b) => a.distance.CompareTo(b.distance));
+                    bool hitBuilding = false;
                     RaycastHit? validHit = null;
 
                     for (int h = 0; h < hits.Length; h++)
@@ -736,11 +942,41 @@ namespace Dracul.Environment
                         var hit = hits[h];
                         if (hit.transform == transform || hit.transform.IsChildOf(transform) || hit.transform.IsChildOf(container))
                             continue;
+
+                        bool isBuilding = false;
+                        if (buildingTarget != null && (hit.transform == buildingTarget || hit.transform.IsChildOf(buildingTarget)))
+                        {
+                            isBuilding = true;
+                        }
+                        else if (_cachedBuildingTargets != null)
+                        {
+                            for (int b = 0; b < _cachedBuildingTargets.Count; b++)
+                            {
+                                Transform bt = _cachedBuildingTargets[b];
+                                if (bt != null && (hit.transform == bt || hit.transform.IsChildOf(bt)))
+                                {
+                                    isBuilding = true;
+                                    break;
+                                }
+                            }
+                        }
+
+                        if (isBuilding)
+                        {
+                            hitBuilding = true;
+                            continue;
+                        }
+
+                        if (preventBuildingRoofSpawn && hitBuilding)
+                        {
+                            break;
+                        }
+
                         validHit = hit;
                         break;
                     }
 
-                    if (!validHit.HasValue) continue;
+                    if (!validHit.HasValue || (preventBuildingRoofSpawn && hitBuilding)) continue;
                     RaycastHit groundHit = validHit.Value;
 
                     if (Vector3.Angle(groundHit.normal, Vector3.up) > maxSlopeAngle) continue;
@@ -833,6 +1069,91 @@ namespace Dracul.Environment
             }
         }
 
+#if UNITY_EDITOR
+        /// <summary>
+        /// コンテキストメニュー（右クリック）からも実行可能なプリセット呼び出し
+        /// </summary>
+        [ContextMenu("Setup Medieval Debris Preset (木多め・瓦礫少なめ)")]
+        private void ContextMenuSetupDebrisPreset()
+        {
+            Undo.RecordObject(this, "Setup Medieval Debris Preset");
+
+            string prefabFolder = "Assets/Medieval Village Building Pack/Prefabs";
+            string[] allPrefabs = AssetDatabase.FindAssets("t:Prefab", new[] { prefabFolder });
+
+            var woodList = new System.Collections.Generic.List<GameObject>();
+            var rubbleList = new System.Collections.Generic.List<GameObject>();
+
+            foreach (string guid in allPrefabs)
+            {
+                string path = AssetDatabase.GUIDToAssetPath(guid);
+                string fileName = System.IO.Path.GetFileNameWithoutExtension(path);
+                GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(path);
+                if (prefab == null) continue;
+
+                if (fileName.StartsWith("Wood_Plank") || fileName.StartsWith("Wood_Support") || fileName.StartsWith("Wood_Joist"))
+                {
+                    woodList.Add(prefab);
+                }
+                else if (fileName.StartsWith("Brick_Corner") || fileName.StartsWith("Brick_Row"))
+                {
+                    rubbleList.Add(prefab);
+                }
+            }
+
+            useRatioCategories = true;
+            woodPrefabs = woodList.ToArray();
+            rubblePrefabs = rubbleList.ToArray();
+            woodRatio = 0.8f; // 木80% : 瓦礫20%
+
+            distributionMode = DistributionMode.BuildingProximity;
+            preventBuildingRoofSpawn = true;
+            buildingProximityFocus = 0.95f;
+
+            if (spawnAreaSize == new Vector2(100f, 100f) || spawnAreaSize == new Vector2(25f, 25f))
+            {
+                spawnAreaSize = new Vector2(16f, 16f);
+            }
+            if (buildingOuterRadius >= 10f)
+            {
+                buildingInnerRadius = 3.8f;
+                buildingOuterRadius = 7.0f;
+            }
+            buildingFalloff = 2.0f;
+
+            if (treeCount == 50)
+            {
+                treeCount = 25;
+            }
+            minDistance = 0.4f;
+
+            baseScale = new Vector3(0.85f, 0.85f, 0.85f);
+            scaleVariation = 0.3f;
+            randomYRotation = true;
+            randomTumbleAngle = 20f;
+
+            alignToGroundNormal = true;
+            normalAlignmentStrength = 0.9f;
+            groundSinkRatio = 0.15f;
+
+            addShadeSystem = false;
+            removeColliders = false;
+            containerName = "DebrisContainer";
+
+            EditorUtility.SetDirty(this);
+            EditorUtility.DisplayDialog(
+                "Medieval Debris Preset",
+                $"【瓦礫プリセットを適用しました】\n\n" +
+                $"・木材プレハブ: {woodList.Count}個\n" +
+                $"・瓦礫プレハブ: {rubbleList.Count}個\n" +
+                $"・木材比率: 80% (木多め・瓦礫少なめ)\n" +
+                $"・分布モード: Building Proximity (建物周辺集中)\n\n" +
+                $"必要に応じて 'Building Target'（対象の家）を指定し、'Generate' ボタンを押して配置してください。",
+                "OK"
+            );
+        }
+#endif
+
         /// <summary>
         /// オブジェクトをまとめる親オブジェクトを取得または作成
         /// </summary>
@@ -903,6 +1224,34 @@ namespace Dracul.Environment
                         {
                             Gizmos.color = new Color(1.0f, 0.3f, 0.2f, 0.5f);
                             Gizmos.DrawWireSphere(tPos, treeInnerRadius);
+                        }
+                    }
+                }
+            }
+
+            // 建物連動モード（BuildingProximity）のプレビューギズモ
+            if (distributionMode == DistributionMode.BuildingProximity)
+            {
+                if (_cachedBuildingPositions == null || _cachedBuildingPositions.Count == 0)
+                {
+                    CollectBuildingPositions();
+                }
+
+                if (_cachedBuildingPositions != null && _cachedBuildingPositions.Count > 0)
+                {
+                    for (int i = 0; i < _cachedBuildingPositions.Count; i++)
+                    {
+                        Vector3 bPos = _cachedBuildingPositions[i];
+
+                        // 瓦礫の広がり範囲（黄色）
+                        Gizmos.color = new Color(1.0f, 0.7f, 0.1f, 0.4f);
+                        Gizmos.DrawWireSphere(bPos, buildingOuterRadius);
+
+                        // 建物内部除外範囲（赤色）
+                        if (buildingInnerRadius > 0f)
+                        {
+                            Gizmos.color = new Color(1.0f, 0.2f, 0.2f, 0.5f);
+                            Gizmos.DrawWireSphere(bPos, buildingInnerRadius);
                         }
                     }
                 }
