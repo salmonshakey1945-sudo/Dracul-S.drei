@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>上位敵メカ（Enemy_Mech）実装・改修完了レポート</title>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
+            --text-color: #f1f5f9;
+            --text-muted: #94a3b8;
+            --accent-primary: #38bdf8;
+            --accent-secondary: #f59e0b;
+            --accent-danger: #ef4444;
+            --accent-success: #10b981;
+            --border-color: #334155;
+        }
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            line-height: 1.6;
+            padding: 2rem 1rem;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+        header {
+            text-align: center;
+            margin-bottom: 2.5rem;
+            padding-bottom: 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+        h1 {
+            font-size: 2.2rem;
+            color: var(--accent-primary);
+            margin-bottom: 0.5rem;
+        }
+        .subtitle {
+            color: var(--text-muted);
+            font-size: 0.95rem;
+        }
+        .card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2);
+        }
+        h2 {
+            font-size: 1.4rem;
+            color: var(--accent-primary);
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        h3 {
+            font-size: 1.15rem;
+            color: var(--accent-secondary);
+            margin: 1rem 0 0.5rem 0;
+        }
+        p, ul {
+            margin-bottom: 0.8rem;
+            color: var(--text-color);
+        }
+        ul {
+            padding-left: 1.5rem;
+        }
+        li {
+            margin-bottom: 0.4rem;
+        }
+        .badge {
+            display: inline-block;
+            padding: 0.2rem 0.6rem;
+            font-size: 0.8rem;
+            font-weight: 600;
+            border-radius: 9999px;
+            margin-right: 0.4rem;
+        }
+        .badge-boss { background-color: rgba(245, 158, 11, 0.2); color: var(--accent-secondary); border: 1px solid var(--accent-secondary); }
+        .badge-feature { background-color: rgba(56, 189, 248, 0.2); color: var(--accent-primary); border: 1px solid var(--accent-primary); }
+        .badge-fix { background-color: rgba(16, 185, 129, 0.2); color: var(--accent-success); border: 1px solid var(--accent-success); }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1rem 0;
+        }
+        th, td {
+            padding: 0.75rem 1rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+        }
+        th {
+            background-color: rgba(15, 23, 42, 0.6);
+            color: var(--text-muted);
+            font-weight: 600;
+        }
+        code {
+            background-color: rgba(15, 23, 42, 0.8);
+            color: #38bdf8;
+            padding: 0.2rem 0.4rem;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 0.9em;
+        }
+        .highlight-box {
+            background-color: rgba(56, 189, 248, 0.08);
+            border-left: 4px solid var(--accent-primary);
+            padding: 1rem;
+            border-radius: 0 8px 8px 0;
+            margin: 1rem 0;
+        }
+        .alert-box {
+            background-color: rgba(245, 158, 11, 0.08);
+            border-left: 4px solid var(--accent-secondary);
+            padding: 1rem;
+            border-radius: 0 8px 8px 0;
+            margin: 1rem 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>上位敵メカ（Enemy_Mech）実装・改修レポート</h1>
+            <p class="subtitle">Dracul-S.drei プロジェクト | 開発完了報告 | 2026-11-21</p>
+        </header>
+
+        <!-- 概要 -->
+        <div class="card">
+            <h2>🎯 実装の概要</h2>
+            <p>インポートされたMechモデルデータをベースに、プレイヤーと一定の距離（中距離）を保ちながら遠距離攻撃を行うボス級エリートメカ <code>Enemy_Mech</code> を実装しました。</p>
+            <div style="margin-top: 0.5rem;">
+                <span class="badge badge-boss">ボス級強敵</span>
+                <span class="badge badge-feature">距離維持型AI (Kiting)</span>
+                <span class="badge badge-feature">追尾ミサイル</span>
+                <span class="badge badge-feature">機関銃バースト</span>
+                <span class="badge badge-fix">不具合完全解決</span>
+            </div>
+        </div>
+
+        <!-- 攻撃・行動仕様 -->
+        <div class="card">
+            <h2>⚔️ 戦闘スタイル & 行動仕様</h2>
+            <h3>1. 間合い管理ロジック（引き撃ち / カイト行動）</h3>
+            <ul>
+                <li><strong>遠距離（16m以上）:</strong> プレイヤーへ向かって歩行で接近。</li>
+                <li><strong>適正距離（7m〜16m）:</strong> 移動を停止し、プレイヤーを照準して機関銃と追尾ミサイルを撃ち分け。</li>
+                <li><strong>近距離（7m未満）:</strong> プレイヤーが接近しすぎると、<code>agent.Move()</code> による<strong>スムーズな後退（バック移動）</strong>で距離を取り直します（正面を向きながら後退）。</li>
+            </ul>
+
+            <h3>2. 攻撃パターン & ダメージ設定</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>攻撃種別</th>
+                        <th>1発のダメージ</th>
+                        <th>発射数 / 特徴</th>
+                        <th>着弾 & 貫通ルール</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>機関銃（マシンガン）</strong></td>
+                        <td><code>4</code>（インスペクターで変更可）</td>
+                        <td>6発バースト連射<br>発射直前にクイック照準</td>
+                        <td>遮蔽物（壁・建物・箱・地面）で着弾消滅<br><strong>「木」のみ貫通</strong></td>
+                    </tr>
+                    <tr>
+                        <td><strong>追尾ミサイル</strong></td>
+                        <td><code>25</code>（インスペクターで変更可）</td>
+                        <td>左右計2発発射<br><strong>1秒間ホーミング追尾</strong>後直進</td>
+                        <td><strong>木を含むすべての遮蔽物に着弾・爆発</strong><br>範囲ダメージ＋ノックバック</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div class="alert-box">
+                <strong>💡 テスト用ダメージ無効化スイッチについて</strong><br>
+                現在、動作確認テストのため <code>EnemyMech</code> の <strong><code>Test Disable Damage</code> が ON（0ダメージ）</strong> に設定されています。実際の被ダメージをテストする際は、インスペクターのチェックを外すだけで即座に実ダメージが適用されます。
+            </div>
+        </div>
+
+        <!-- 演出・アニメーション -->
+        <div class="card">
+            <h2>🎬 アニメーション & 演出ギミック</h2>
+            <ul>
+                <li><strong>ミサイル発射時の仰角演出:</strong>
+                    ミサイル攻撃中は足を完全停止し、上半身（大キャノン）が<strong>約25度上空へ起き上がってから</strong>左右放射状に空高くミサイルを発射。撃ち終わるとスムーズに水平姿勢へ復帰します。
+                </li>
+                <li><strong>上半身の水平照準（エイム追従）:</strong>
+                    下半身が移動中や後退中であっても、上半身が地球の垂直軸（<code>Vector3.up</code>）周りで滑らかにプレイヤーを水平ロックオン（左右±60度制限）します。
+                </li>
+                <li><strong>視認性の向上:</strong>
+                    機関銃弾は長さ1.4m・太さ0.5mの大型発光カプセル＋鮮やかなオレンジ色の光跡（TrailRenderer）をまとい、URP環境でも誰の目にもハッキリ視認できるように強化しました。
+                </li>
+            </ul>
+        </div>
+
+        <!-- 解決した課題・不具合記録 -->
+        <div class="card">
+            <h2>🛠️ トラブルシューティング & 解決記録</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>発生していた課題</th>
+                        <th>原因</th>
+                        <th>施した解決策</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>CameraFollow / MinDrawer コンパイルエラー</strong></td>
+                        <td>Mechアセット内の旧PostProcessingスクリプトと既存クラスの重複・競合</td>
+                        <td>名前空間の隔離（<code>MechSample</code>）および完全修飾名の明示によりエラーを解消。</td>
+                    </tr>
+                    <tr>
+                        <td><strong>ミサイルの発射直後自爆</strong></td>
+                        <td>マズル位置が自機コライダー内部にあり、Instantiate直後に自機に衝突</td>
+                        <td>発射位置の安全オフセット、発射直後0.4秒のセーフティガード、自機コライダーの物理無視を追加。</td>
+                    </tr>
+                    <tr>
+                        <td><strong>プレイヤー接近時に後退しない</strong></td>
+                        <td>NavMeshAgent の <code>stoppingDistance</code> の誤判定</td>
+                        <td>後退判定時に <code>agent.Move()</code> による直接スライド後退処理へ刷新。</td>
+                    </tr>
+                    <tr>
+                        <td><strong>上半身が横倒し・後ろ向きになる</strong></td>
+                        <td>ボーン初期軸のズレに対しローカルオイラー角を誤適用</td>
+                        <td>垂直軸（<code>Vector3.up</code>）周りの差分回転および作者公式の <code>Euler(yaw, 180, pitch)</code> 方式へ完全統一。</td>
+                    </tr>
+                    <tr>
+                        <td><strong>機関銃弾が発射直後に消える</strong></td>
+                        <td>弾丸カプセル長と自機コライダーの干渉、および <code>Tag: Tree is not defined</code> 例外</td>
+                        <td>未定義タグ例外の完全除去、発射直後0.25秒の完全無敵ガード、Transform直接推進の導入。</td>
+                    </tr>
+                    <tr>
+                        <td><strong>ミサイル射撃時に右に傾く</strong></td>
+                        <td>Z軸をピッチ（上下）と誤認しロール（左右傾き）が発動</td>
+                        <td>上下軸がY軸であることを特定し、Z軸を0度水平固定、Y軸で仰角を制御するよう修正。</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- 主要ファイル一覧 -->
+        <div class="card">
+            <h2>📁 主要ファイル構成</h2>
+            <ul>
+                <li><code>Assets/Scripts/EnemyMech.cs</code>: 上位敵メカAI制御（間合い・攻撃・アニメーション連動）</li>
+                <li><code>Assets/Scripts/HomingMissile.cs</code>: 追尾ミサイル制御（1秒追尾、着弾爆発、ノックバック）</li>
+                <li><code>Assets/Scripts/Bullet.cs</code>: 機関銃弾制御（遮蔽物着弾・木のみ貫通・発光保証）</li>
+                <li><code>Assets/Prefab/Enemy_Mech.prefab</code>: 完成版上位敵メカプレハブ</li>
+                <li><code>Assets/Prefab/Mech_Missile.prefab</code>: 追尾ミサイルプレハブ</li>
+                <li><code>Assets/Prefab/Mech_Bullet.prefab</code>: 機関銃弾プレハブ</li>
+                <li><code>Assets/Mech/Controller/Mech_Enemy.controller</code>: アニメーターコントローラー</li>
+                <li><code>Assets/Editor/MechEnemySetupTool.cs</code>: 自動セットアップエディタ拡張</li>
+            </ul>
+        </div>
+    </div>
+</body>
+</html>
