@@ -60,6 +60,10 @@ PrefabInstance:
       propertyPath: m_Controller
       value: 
       objectReference: {fileID: 9100000, guid: 87472343087a734428074b80f80bf93f, type: 2}
+    - target: {fileID: 13700000, guid: fec746e46c2fd354fa0bc92720075dbd, type: 3}
+      propertyPath: 'm_Materials.Array.data[0]'
+      value: 
+      objectReference: {fileID: 2100000, guid: 525dc6a1bbb1c8b4d81b4bbb7850464a, type: 2}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -269,12 +273,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 878b2f65ee26dfd4ca79e3ac8b28af53, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EnemyHealth
-  maxHealth: 150
+  maxHealth: 15
   explosionPrefab: {fileID: 1121192042590650, guid: e1b08032bec16ba4eb1ae23cbd572664, type: 3}
   explosionLifeTime: 1
   finalExplosionPrefab: {fileID: 0}
   finalExplosionLifeTime: 1.5
-  fallDownDuration: 2
+  fallDownDuration: 0
   fallDownYOffset: 0
   deadStayTime: 90
   sinkAfterDeath: 0
@@ -300,8 +304,8 @@ MonoBehaviour:
   speed: 3
   stoppingDistance: 1.5
   attackInterval: 1.5
-  activeTime: 2
-  testDisableDamage: 1
+  activeTime: 1
+  testDisableDamage: 0
   idealDistance: 11
   minDistance: 7
   maxDistance: 16

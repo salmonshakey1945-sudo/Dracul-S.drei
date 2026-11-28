@@ -97,6 +97,15 @@ public class EnemyMech : EnemyBase
     // 水平照準角の補間変数
     private float currentAimYaw = 0f;
 
+    // 起動・死亡状態フラグ
+    private bool isWakingUp = false;
+    private bool isDead = false;
+
+    // 死亡時のスムーズな姿勢移行用
+    private float deathStartAimYaw = 0f;
+    private float deathStartPitch = 0f;
+    private float deathAimBlend = 0f;
+
     // ミサイル発射時の仰角アニメーション制御
     private bool isPitchingBody = false;
     private float currentPitchAngle = 0f;
@@ -106,10 +115,18 @@ public class EnemyMech : EnemyBase
     private static readonly int ShootSmallTrigger = Animator.StringToHash("ShootSmall");
     private static readonly int ShootBigTrigger = Animator.StringToHash("ShootBig");
     private static readonly int HitTrigger = Animator.StringToHash("Hit");
+    private static readonly int DieTrigger = Animator.StringToHash("Die");
+
+    [Header("Debug / Test Settings")]
+    [Tooltip("trueにすると昼夜チェックを無視して常時活動")]
+    public bool testIgnoreTimeCondition = false;
 
     protected override void Start()
     {
-        activeTime = TimeCondition.Any;
+        if (testIgnoreTimeCondition)
+        {
+            activeTime = TimeCondition.Any;
+        }
 
         base.Start();
 
@@ -124,10 +141,15 @@ public class EnemyMech : EnemyBase
         agent.speed = chaseSpeed;
         agent.stoppingDistance = 0.5f;
         currentCooldown = attackInterval;
+
+        // スポーン時の起動アニメーション（休眠から立ち上がる）
+        StartCoroutine(WakeUpSequence());
     }
 
     protected override void Update()
     {
+        if (isWakingUp || isDead) return;
+
         if (player == null)
         {
             GameObject playerObj = GameObject.FindGameObjectWithTag("Player");
@@ -156,7 +178,21 @@ public class EnemyMech : EnemyBase
 
     protected virtual void LateUpdate()
     {
-        if (bodyBone == null) return;
+        if (bodyBone == null || isWakingUp) return;
+
+        // 死亡時：上半身の照準角度を滑らかに正面へ戻す
+        if (isDead)
+        {
+            if (deathAimBlend > 0f)
+            {
+                deathAimBlend = Mathf.MoveTowards(deathAimBlend, 0f, Time.deltaTime / 0.7f);
+                float currentYaw = Mathf.Lerp(0f, deathStartAimYaw, deathAimBlend);
+                float currentPitch = Mathf.Lerp(0f, deathStartPitch, deathAimBlend);
+                Quaternion aimRot = Quaternion.Euler(currentPitch, currentYaw, 0f);
+                bodyBone.localRotation = aimRot * bodyBone.localRotation;
+            }
+            return;
+        }
 
         // ミサイル射撃中の仰角（Pitch）
         float pitchVal = isPitchingBody ? currentPitchAngle : 0f;
@@ -391,7 +427,7 @@ public class EnemyMech : EnemyBase
 
         // プレイヤーへの射撃方向（胸元を狙う）
         Vector3 targetPoint = (player != null) ? player.position + Vector3.up * 1.0f : transform.position + transform.forward * 10f;
-        targetPoint += Random.insideUnitSphere * 0.2f; // 散布ブレ
+        targetPoint += Random.insideUnitSphere * 0.8f; // 散布ブレ（散弾拡大：命中率低下）
         Vector3 shootDir = (targetPoint - basePos).normalized;
 
         // ロボの当たり判定（半径1.3m）を完全に超えた安全な前方から発射
@@ -471,20 +507,86 @@ public class EnemyMech : EnemyBase
         }
     }
 
-    public override void OnDeath()
+    private IEnumerator WakeUpSequence()
     {
-        base.OnDeath();
+        isWakingUp = true;
         if (agent != null && agent.isOnNavMesh)
         {
             agent.isStopped = true;
         }
+
+        // 起動アニメーション（休眠姿勢から立ち上がる）
+        if (animator != null)
+        {
+            animator.Play("WakeUp", 0, 0f);
+        }
+
+        // 立ち上がりモーション完了まで待機（約2.0秒）
+        yield return new WaitForSeconds(2.0f);
+
+        if (!isDead)
+        {
+            if (agent != null && agent.isOnNavMesh)
+            {
+                agent.isStopped = false;
+            }
+            isWakingUp = false;
+            Debug.Log($"[{gameObject.name}] 大型ロボが起動しました！");
+        }
+    }
+
+    public override void OnDeath()
+    {
+        base.OnDeath();
+        isDead = true;
+        isAttacking = false;
+        isWakingUp = false;
+        StopAllCoroutines();
+
+        // 死亡時の照準姿勢を記録（滑らかな姿勢復帰用）
+        deathStartAimYaw = currentAimYaw;
+        deathStartPitch = isPitchingBody ? currentPitchAngle : 0f;
+        deathAimBlend = 1.0f;
+
+        if (agent != null && agent.isOnNavMesh)
+        {
+            agent.isStopped = true;
+            agent.velocity = Vector3.zero;
+        }
+
+        // スムーズな機能停止（スリープ）シーケンスを開始
+        StartCoroutine(SmoothDeathSequence());
+    }
+
+    private IEnumerator SmoothDeathSequence()
+    {
+        // 撃破時：現在ポーズ（歩行・射撃など）から滑らかにクロスフェード（0.5秒）しながら
+        // 立ち姿～膝をつき休眠姿勢へゆったりとスムーズに移行（案A）
+        if (animator != null)
+        {
+            animator.SetTrigger(DieTrigger);
+            animator.CrossFadeInFixedTime("Die", 0.5f, 0, 1.0f);
+        }
+
+        Debug.Log($"[{gameObject.name}] 大型ロボがスムーズに機能停止（スリープ）を開始しました。");
+
+        // 膝をついて完全に休眠姿勢になるまで待機（約2.2秒）
+        yield return new WaitForSeconds(2.2f);
+
+        // 姿勢が完全に固定された後に NavMeshAgent を無効化
+        if (agent != null && agent.isOnNavMesh)
+        {
+            agent.enabled = false;
+        }
+
+        Debug.Log($"[{gameObject.name}] 大型ロボが完全に機能停止（スリープ完了）しました。");
     }
 
     protected override void OnAttackTarget(GameObject target) { }
 
     private void UpdateAnimator()
     {
-        if (animator == null) return;
+        if (animator == null || isDead || isWakingUp) return;
 
         float speedVal = isRetreating ? 1.0f : ((agent != null && !agent.isStopped) ? agent.velocity.magnitude : 0f);
         animator.SetFloat(SpeedHash, speedVal);

@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>作業進捗レポート - 2026年11月28日</title>
+    <style>
+        :root {
+            --bg-primary: #12141c;
+            --bg-secondary: #1a1e2e;
+            --bg-card: #22273a;
+            --text-primary: #f0f3f8;
+            --text-secondary: #9aa3b8;
+            --accent-blue: #3b82f6;
+            --accent-cyan: #06b6d4;
+            --accent-emerald: #10b981;
+            --accent-amber: #f59e0b;
+            --accent-rose: #f43f5e;
+            --border: #2e3650;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+            padding: 2rem 1rem;
+        }
+
+        .container {
+            max-width: 960px;
+            margin: 0 auto;
+        }
+
+        header {
+            background: linear-gradient(135deg, #1e293b, #0f172a);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 0.75rem;
+        }
+
+        .badge-success { background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.4); }
+        .badge-warning { background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.4); }
+        .badge-danger { background: rgba(244, 63, 94, 0.2); color: #fb7185; border: 1px solid rgba(244, 63, 94, 0.4); }
+        .badge-info { background: rgba(59, 130, 246, 0.2); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.4); }
+
+        h1 {
+            font-size: 1.8rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            color: #ffffff;
+        }
+
+        .meta {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .section-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            margin: 2rem 0 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: var(--text-primary);
+        }
+
+        .section-title::before {
+            content: "";
+            display: inline-block;
+            width: 4px;
+            height: 1.3rem;
+            background: var(--accent-blue);
+            border-radius: 2px;
+        }
+
+        .card {
+            background-color: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 1.25rem 1.5rem;
+            margin-bottom: 1rem;
+            transition: transform 0.2s ease, border-color 0.2s ease;
+        }
+
+        .card:hover {
+            border-color: #3f4a6e;
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.75rem;
+        }
+
+        .card-title {
+            font-size: 1.05rem;
+            font-weight: 600;
+            color: #ffffff;
+        }
+
+        .card p {
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+            margin-bottom: 0.5rem;
+        }
+
+        ul {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        li {
+            position: relative;
+            padding-left: 1.5rem;
+            margin-bottom: 0.5rem;
+            font-size: 0.92rem;
+            color: #cbd5e1;
+        }
+
+        li::before {
+            content: "•";
+            position: absolute;
+            left: 0.5rem;
+            color: var(--accent-cyan);
+            font-weight: bold;
+        }
+
+        .code-inline {
+            background: rgba(15, 23, 42, 0.6);
+            padding: 0.15rem 0.4rem;
+            border-radius: 4px;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+            font-size: 0.85em;
+            color: #38bdf8;
+            border: 1px solid rgba(56, 189, 248, 0.2);
+        }
+
+        .alert-box {
+            background: linear-gradient(135deg, rgba(244, 63, 94, 0.1), rgba(244, 63, 94, 0.05));
+            border-left: 4px solid var(--accent-rose);
+            border-radius: 0 8px 8px 0;
+            padding: 1.25rem;
+            margin: 1.5rem 0;
+        }
+
+        .alert-title {
+            font-weight: 700;
+            color: #fb7185;
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .table-container {
+            overflow-x: auto;
+            margin: 1rem 0;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+        }
+
+        th, td {
+            padding: 0.75rem 1rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+
+        th {
+            background: rgba(30, 41, 59, 0.6);
+            color: #94a3b8;
+            font-weight: 600;
+        }
+
+        td {
+            color: #cbd5e1;
+        }
+
+        tr:hover td {
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        footer {
+            text-align: center;
+            margin-top: 3rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid var(--border);
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <span class="badge badge-success">完了・次回課題まとめ</span>
+            <h1>Dracul-S.drei 作業進捗レポート</h1>
+            <p class="meta">実施日: 2026年11月28日 | 対象プロジェクト: Unity 2023.2.0b13 (URP)</p>
+        </header>
+
+        <!-- 本日の実施内容 -->
+        <h2 class="section-title">本日の実施内容と成果</h2>
+
+        <div class="card">
+            <div class="card-header">
+                <span class="card-title">1. 大型ロボ（Assault Mech）のテクスチャ不具合修正</span>
+                <span class="badge badge-info">グラフィック改善</span>
+            </div>
+            <p>Built-inシェーダーとURPの非互換によりピンク/白抜けしていたマテリアルをURP/Litへ完全移行しました。</p>
+            <ul>
+                <li><span class="code-inline">Mech_Metal.mat</span>、<span class="code-inline">Mech_Cyan.mat</span>、<span class="code-inline">Mech_GreenYellow.mat</span> を URP/Lit に変換</li>
+                <li><span class="code-inline">mech.fbx.meta</span> のマテリアルインポート設定と <span class="code-inline">externalObjects</span> 参照マッピングを修正</li>
+            </ul>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <span class="card-title">2. 機関銃弾幕の散乱拡大（命中率低減）</span>
+                <span class="badge badge-info">バランス調整</span>
+            </div>
+            <p>大型ロボのガトリング射撃がプレイヤーに連続ヒットしすぎる問題を解消するため、弾の拡散範囲を広げました。</p>
+            <ul>
+                <li><span class="code-inline">EnemyMech.cs</span> の <span class="code-inline">Random.insideUnitSphere</span> 散布ブレ係数を 0.2f → <strong>0.8f</strong> に拡張</li>
+            </ul>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <span class="card-title">3. 新敵キャラ「Delivery Robot」の実装と夜間敵置換</span>
+                <span class="badge badge-success">新機能追加</span>
+            </div>
+            <p>ダウンロードされた「Delivery Robot」を一般の遠距離射撃敵として導入し、従来の <span class="code-inline">Enemy_night</span> を置き換えました。</p>
+            <ul>
+                <li><strong>プレハブ構築</strong>: オレンジカラー仕様、頭部射撃ポイント、荷物ボックス非表示、CapsuleCollider、NavMeshAgent 適用</li>
+                <li><strong>動作連携</strong>: <span class="code-inline">EnemyNight.cs</span> を作成し、歩行（Walking）・射撃（Attack）・撃破（Die）アニメーションを実装</li>
+                <li><strong>テスト保護機能</strong>: 昼間の自己消滅を抑止するテストフラグ（<span class="code-inline">testIgnoreTimeCondition</span>）を搭載</li>
+            </ul>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <span class="card-title">4. 体力およびスポーンバランス調整</span>
+                <span class="badge badge-info">バランス調整</span>
+            </div>
+            <p>プレイヤーのピストル攻撃（1発1ダメージ）に基づき、敵の耐久値を調整しました。</p>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>対象キャラクター</th>
+                            <th>最大HP</th>
+                            <th>ピストル撃破弾数</th>
+                            <th>出現時間帯</th>
+                            <th>出現重み比率</th>
+                            <th>最大同時存在数</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>小型ロボ (Delivery Robot)</td>
+                            <td>3</td>
+                            <td>3 発</td>
+                            <td>夜のみ</td>
+                            <td>10 (比率 10)</td>
+                            <td>10 体</td>
+                        </tr>
+                        <tr>
+                            <td>大型ボス (Assault Mech)</td>
+                            <td>15</td>
+                            <td>15 発</td>
+                            <td>夜のみ</td>
+                            <td>1 (比率 1)</td>
+                            <td>1 体</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <span class="card-title">5. 大型ロボの起動・スリープ（機能停止）アニメーション実装＆速度調整</span>
+                <span class="badge badge-success">演出強化</span>
+            </div>
+            <p>倒された際の撃破ポーズ（案A: 膝をついて機能停止スリープ）およびスポーン時の起動モーションを実装し、重厚感のある低速モーションに微調整しました。</p>
+            <ul>
+                <li><strong>スポーン起動</strong>: <span class="code-inline">SleepToDefault</span> を再生速度 <strong>0.55</strong> に設定、約2.0秒かけて重々しく立ち上がり活動開始</li>
+                <li><strong>スリープ撃破</strong>: アニメーションを逆再生（再生速度 <strong>-0.5</strong>）で再生。現在ポーズから 0.5 秒のクロスフェードでスムーズに膝をつき、2.2 秒後に完全停止</li>
+                <li><strong>姿勢補正</strong>: 撃破時に照準を向けていた上半身ボーンを 0.7 秒かけて正面へ滑らかに戻す処理を実装</li>
+            </ul>
+        </div>
+
+        <!-- 次回課題・バグ報告 -->
+        <h2 class="section-title">次回やること・検出された不具合</h2>
+
+        <div class="alert-box">
+            <div class="alert-title">
+                ⚠️ 【優先対応】スポーンバグの修正（大型ロボが最初に出て、以降スポーンが停止する）
+            </div>
+            <p><strong>現象:</strong> 夜になった際、ほぼ確定で大型ロボ（Boss Mech）が最初に出現し、その後に小型ロボ（Delivery Robot）が一切スポーンしてこなくなる。</p>
+            <br>
+            <p><strong>原因の分析結果（特定完了）:</strong></p>
+            <ul>
+                <li><span class="code-inline">SampleScene.unity</span> の <span class="code-inline">EnemySpawner</span> に登録されている <span class="code-inline">Enemy_night</span> の参照 FileID が、プレハブ刷新前の古いID（<span class="code-inline">6649170631692714548</span>）のままとなっており、Unity上で <strong>Missing (GameObject)</strong> 状態になっている。</li>
+                <li>このため夜間抽選時に <span class="code-inline">Enemy_night</span> が null として除外され、有効なエントリが大型ロボ（<span class="code-inline">Enemy_Mech</span>）のみ（実質確率100%）となる。</li>
+                <li>大型ロボが1体出現すると同時存在上限（<span class="code-inline">maxCount: 1</span>）に達するため、以後はスポーン可能な敵が0件となり、<strong>スポーンシステム全体が停止</strong>する。</li>
+            </ul>
+            <br>
+            <p><strong>次回の修正手順:</strong></p>
+            <ul>
+                <li><span class="code-inline">SampleScene.unity</span> 上の <span class="code-inline">Enemy_night</span> プレハブ参照を新しい root GameObject ID（<span class="code-inline">5163605520243934255</span>）へ修正。</li>
+                <li>Unity Playモードにて夜間に小型ロボが約10体に対して大型ロボ1体の比率で順次スポーンすることを確認。</li>
+                <li>スポーンポイントの配置場所や出現タイミングの微調整。</li>
+            </ul>
+        </div>
+
+        <footer>
+            <p>Dracul-S.drei Development Team &bull; Generated automatically on 2026-11-28</p>
+        </footer>
+    </div>
+</body>
+</html>

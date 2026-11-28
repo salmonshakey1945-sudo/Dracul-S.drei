@@ -91,9 +91,10 @@ public abstract class EnemyBase : MonoBehaviour
     /// NavMeshAgent を使ってプレイヤーへ追尾する。
     /// stoppingDistance 以内に入ると停止する（NavMeshAgent の設定で制御）。
     /// </summary>
-    private void MoveTowardPlayer()
+    protected virtual void MoveTowardPlayer()
     {
         if (agent == null || !agent.isOnNavMesh) return;
+        if (agent.isStopped) return;
         agent.SetDestination(player.position);
     }
 

@@ -1,15 +1,15 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
-/// 敵のスポーンを管理する。SpawnEntry のリストに登録した分だけ、
-/// 昼夜条件・同時存在数上限を守りながら生成する。
-/// 新しい敵を追加するときはこのスクリプトを変更せず、
-/// インスペクターの SpawnEntries リストに Prefab を追加するだけでよい。
+/// 敵のスポーンを管理する。
+/// 昼夜条件・同時存在数上限・出現確率の重み（Weight）を守りながら生成する。
+/// 新しい敵を追加するときはインスペクターの SpawnEntries リストに追加するだけでよい。
 /// </summary>
 public class EnemySpawner : MonoBehaviour
 {
     /// <summary>
-    /// スポーンするエントリ1件分の設定。インスペクターで複数登録できる。
+    /// スポーンするエントリー1件分の設定。
     /// </summary>
     [System.Serializable]
     public class SpawnEntry
@@ -20,6 +20,8 @@ public class EnemySpawner : MonoBehaviour
         public TimeCondition spawnTime = TimeCondition.Any;
         [Tooltip("この種類の敵の同時存在数の上限")]
         public int maxCount = 5;
+        [Tooltip("出現確率の重み（例: 敵ロボ=10, 大型ボス=1 で10:1の比率で抽選）")]
+        public float spawnWeight = 1.0f;
     }
 
     [Header("Spawn Entries")]
@@ -32,7 +34,7 @@ public class EnemySpawner : MonoBehaviour
 
     [Header("Spawn Timing")]
     [Tooltip("スポーンを試みる間隔（秒）")]
-    public float spawnInterval = 10.0f;
+    public float spawnInterval = 7.0f;
 
     private float timer;
 
@@ -45,18 +47,23 @@ public class EnemySpawner : MonoBehaviour
 
         if (timer >= spawnInterval)
         {
-            TrySpawnAll();
+            TrySpawnOne();
             timer = 0f;
         }
     }
 
     /// <summary>
-    /// 全エントリに対してスポーン条件をチェックし、条件を満たすものを生成する。
+    /// 現在の時間帯に適合し、上限数に達していないエントリーから
+    /// 重み（spawnWeight）に基づいた抽選を行い、1体スポーンする。
     /// </summary>
-    private void TrySpawnAll()
+    private void TrySpawnOne()
     {
         var tm = Dracul.Core.TimeManager.Instance;
         bool isDay = (tm != null) ? tm.IsDay : true;
+
+        // 1. 現在スポーン可能なエントリー（時間帯OK かつ 上限未満）を収集
+        List<SpawnEntry> availableEntries = new List<SpawnEntry>();
+        float totalWeight = 0f;
 
         foreach (var entry in spawnEntries)
         {
@@ -69,13 +76,36 @@ public class EnemySpawner : MonoBehaviour
 
             if (!timeOk) continue;
 
-            // 同時存在数チェック（同じプレハブ名で数える）
+            // 同時存在数チェック
             int currentCount = CountEnemyByName(entry.prefab.name);
             if (currentCount >= entry.maxCount) continue;
 
-            // スポーン実行
-            SpawnEnemy(entry.prefab);
+            // スポーン可能
+            float weight = Mathf.Max(0.01f, entry.spawnWeight);
+            availableEntries.Add(entry);
+            totalWeight += weight;
         }
+
+        if (availableEntries.Count == 0 || totalWeight <= 0f) return;
+
+        // 2. 重み付けランダム抽選（Weighted Random）
+        float roll = Random.Range(0f, totalWeight);
+        float currentSum = 0f;
+        SpawnEntry selectedEntry = availableEntries[0];
+
+        foreach (var entry in availableEntries)
+        {
+            float weight = Mathf.Max(0.01f, entry.spawnWeight);
+            currentSum += weight;
+            if (roll <= currentSum)
+            {
+                selectedEntry = entry;
+                break;
+            }
+        }
+
+        // 3. 抽選された敵をスポーン
+        SpawnEnemy(selectedEntry.prefab);
     }
 
     /// <summary>
@@ -84,7 +114,6 @@ public class EnemySpawner : MonoBehaviour
     private int CountEnemyByName(string prefabName)
     {
         int count = 0;
-        // "(Clone)" を除いたオブジェクト名で比較
         foreach (var enemy in Object.FindObjectsByType<EnemyBase>(FindObjectsSortMode.None))
         {
             string objName = enemy.gameObject.name.Replace("(Clone)", "").Trim();
@@ -102,6 +131,6 @@ public class EnemySpawner : MonoBehaviour
         Transform spawnPoint = spawnPoints[randomIndex];
 
         Instantiate(prefab, spawnPoint.position, spawnPoint.rotation);
-        Debug.Log($"[EnemySpawner] {prefab.name} をスポーンしました。");
+        Debug.Log($"[EnemySpawner] {prefab.name} をスポーンしました (時刻: {(Dracul.Core.TimeManager.Instance?.IsDay == true ? "昼" : "夜")})");
     }
 }

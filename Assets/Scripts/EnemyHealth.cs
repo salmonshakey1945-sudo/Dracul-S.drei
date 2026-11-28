@@ -88,18 +88,19 @@ public class EnemyHealth : MonoBehaviour
 
     IEnumerator DeathSequence()
     {
-        /* --- 1. EnemyBase（および派生クラス）を無効化 --- */
-        // EnemyBase を参照するだけでよいため、新しい敵を追加しても変更不要
+        /* --- 1. EnemyBase（および派生クラス）に死亡を通知 --- */
         EnemyBase enemyScript = GetComponent<EnemyBase>();
         if (enemyScript != null)
         {
             enemyScript.OnDeath();
-            enemyScript.enabled = false;
         }
 
         // NavMeshAgent も停止させる
         var navAgent = GetComponent<UnityEngine.AI.NavMeshAgent>();
-        if (navAgent != null) navAgent.enabled = false;
+        if (navAgent != null && navAgent.isOnNavMesh)
+        {
+            navAgent.isStopped = true;
+        }
 
         // コライダーを物理衝突なし・トリガーのみに変更
         Collider col = GetComponent<Collider>();
@@ -140,23 +141,26 @@ public class EnemyHealth : MonoBehaviour
             Destroy(explosion1, explosionLifeTime);
         }
 
-        /* --- 4. ゆっくり倒れるアニメーション --- */
-        Quaternion startRotation = transform.rotation;
-        Quaternion targetRotation = Quaternion.Euler(90, transform.eulerAngles.y, 0);
-        Vector3 startPosition = transform.position;
-        Vector3 targetPosition = startPosition + Vector3.up * fallDownYOffset;
-
-        float elapsedTime = 0f;
-        while (elapsedTime < fallDownDuration)
+        /* --- 4. ゆっくり倒れるアニメーション（fallDownDuration > 0 の場合のみ） --- */
+        if (fallDownDuration > 0f)
         {
-            float t = elapsedTime / fallDownDuration;
-            transform.rotation = Quaternion.Lerp(startRotation, targetRotation, t);
-            transform.position = Vector3.Lerp(startPosition, targetPosition, t);
-            elapsedTime += Time.deltaTime;
-            yield return null;
+            Quaternion startRotation = transform.rotation;
+            Quaternion targetRotation = Quaternion.Euler(90, transform.eulerAngles.y, 0);
+            Vector3 startPosition = transform.position;
+            Vector3 targetPosition = startPosition + Vector3.up * fallDownYOffset;
+
+            float elapsedTime = 0f;
+            while (elapsedTime < fallDownDuration)
+            {
+                float t = elapsedTime / fallDownDuration;
+                transform.rotation = Quaternion.Lerp(startRotation, targetRotation, t);
+                transform.position = Vector3.Lerp(startPosition, targetPosition, t);
+                elapsedTime += Time.deltaTime;
+                yield return null;
+            }
+            transform.rotation = targetRotation;
+            transform.position = targetPosition;
         }
-        transform.rotation = targetRotation;
-        transform.position = targetPosition;
 
         /* --- 5. しばらく待機（吸血・調査の猶予時間） --- */
         yield return new WaitForSeconds(deadStayTime);
